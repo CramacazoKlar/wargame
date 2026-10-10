@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04ba0607068f09a4fb6091d6d0669103, type: 3}
+  m_Name: Map01Terrain
+  m_EditorClassIdentifier: 
+  bounds:
+    serializedVersion: 2
+    x: -10
+    y: -6
+    width: 20
+    height: 12
+  defaultTerrain: 0
+  regions:
+  - name: Mountain
+    terrain: 3
+    polygon:
+    - {x: -8, y: 1}
+    - {x: -5, y: 1}
+    - {x: -5, y: 4}
+    - {x: -8, y: 4}
+  - name: Grass
+    terrain: 2
+    polygon:
+    - {x: 2, y: 1}
+    - {x: 7, y: 1}
+    - {x: 7, y: 4}
+    - {x: 2, y: 4}
+  - name: Water
+    terrain: 4
+    polygon:
+    - {x: 5, y: -6}
+    - {x: 6, y: -6}
+    - {x: 6, y: 6}
+    - {x: 5, y: 6}
+  - name: Bridge
+    terrain: 1
+    polygon:
+    - {x: 5, y: -2.3}
+    - {x: 6, y: -2.3}
+    - {x: 6, y: -1.6999999}
+    - {x: 5, y: -1.6999999}

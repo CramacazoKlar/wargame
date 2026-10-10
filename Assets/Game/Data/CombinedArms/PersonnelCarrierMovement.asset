@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb5210bd2e574b4290008cfe91aec34, type: 3}
+  m_Name: PersonnelCarrierMovement
+  m_EditorClassIdentifier: 
+  displayName: "\u8FD0\u5175\u8F66"
+  speed: 1.5
+  prefab: {fileID: 0}
+  freeMarchDefinition: {fileID: 11400000, guid: 81e691546025818409ae5a129555d4b6, type: 2}
+  icon: {fileID: 0}
+  iconSize: {x: 0.8, y: 0.5}
+  iconColor: {r: 0.15, g: 0.75, b: 0.95, a: 1}

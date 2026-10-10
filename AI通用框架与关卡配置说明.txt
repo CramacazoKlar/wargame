@@ -1,0 +1,107 @@
+AI通用框架与关卡配置说明
+2026-10-08
+
+一、这次做了什么
+新增AI决策脚本，但复用现有信息、命令、移动、战斗、视野、炮兵和地形系统。
+AI不重新计算伤害，不直接改部队位置，不直接写敌方血量，不操作鼠标或右侧按钮。
+已经可以在Battle01中运行：A为玩家，B为AI。B方未单独配置的部队默认原地守备，炮兵自动展开并执行固定阵地火力支援。
+这是第一版规则AI，不需要模型训练、数据库或联网。
+目前提供守备、巡逻、触发增援、固定阵地炮兵四类任务；不是完整的自由对战指挥官。
+
+二、是否需要具体地图
+写通用任务脚本不需要先决定新地图。
+实际行军、炮击和占领必须在已有地图系统里运行，地图仍要有道路、地形和部队。
+巡逻和增援必须配置这张地图上的真实合法路线点，不能让一组世界坐标通用于所有地图。
+程序逻辑不绑定地图，路线和部队任务绑定关卡配置。
+第一版使用预设路线点，不增加通用自动绕山绕水的寻路功能。
+道路模式使用原有道路网络连接；自由移动模式使用原有地形通行检查，不能假定直线命令会自动绕障碍。
+
+三、脚本位置与挂载
+Assets/RoadMarchDemo/BattleAIController.cs
+挂在已有GameRoot，与BattleWorld同物体。
+负责定期读取B方可见信息、分配默认任务、执行状态切换和下达命令。
+引用World、Information、Commands以及默认守备/炮兵任务。
+
+Assets/RoadMarchDemo/AIUnitOrder.cs
+挂在需要单独配置AI任务的军队物体上，不要求挂在所有兵种预制体中。
+引用Task，填写Task Key；记录当前状态、路线点序号、已下命令数和命令失败原因。
+默认未配置部队会在运行时自动添加该组件和默认任务。
+
+Assets/RoadMarchDemo/AITaskDefinition.cs
+用于创建外部任务配置资产，不挂在军队上。
+配置任务类型、是否等待激活、道路/自由移动、路线点、到达距离、反应时间、解除接触等待和失败重试间隔。
+同一任务资产可以供多支部队使用；每支部队的进度独立。
+
+Assets/RoadMarchDemo/Editor/BattleAIInstaller.cs
+编辑器安装工具，创建默认任务资产并在Battle01配置控制器，不参与游戏战斗。
+
+Assets/RoadMarchDemo/Editor/BattleAIRuntimeVerification.cs
+实际运行检查工具，验证AI接入现有战场；不属于关卡行为。
+
+四、现成任务资产
+Assets/Game/Data/AI/DefaultGuard.asset：原地守备。
+Assets/Game/Data/AI/DefaultArtillery.asset：固定阵地炮兵。
+Assets/Game/Data/AI/PatrolTemplate.asset：巡逻模板，路线点暂为空。
+Assets/Game/Data/AI/ReinforcementTemplate.asset：增援模板，默认等待激活，路线点暂为空。
+制作新关卡时复制模板，避免所有关卡共用同一条路线。
+
+五、做一支巡逻队
+1. 在关卡摆放一支B方部队，添加AIUnitOrder。
+2. 复制PatrolTemplate资产，引用到Task。
+3. 在Waypoints里填写地图世界坐标，至少一个点；通常两个以上形成往返或环路。
+4. 公路行军打开Use Road；合法地面短线移动可以关闭。
+5. 部队依次前往路线点，最后回到第一个点继续巡逻。
+6. 进入自己攻击范围的可见敌军触发反应，默认1秒后主动停车。
+7. 威胁消失并等待默认1秒后，继续未完成的路线点，不重新从起点走。
+8. 非法路线被现有命令服务拒绝，显示失败原因，默认2秒后重试；不会穿水或每帧刷命令。
+
+六、做一支围点打援的援军
+1. 预先将B方援军放在后方区域，添加AIUnitOrder。
+2. 复制ReinforcementTemplate，填写通向城市外围阵地的路线点。
+3. Require Activation保持开启，Task Key填写例如east-relief。
+4. 关卡监测城市受威胁并达到设定条件后，调用控制器ActivateTask("east-relief")。
+5. 所有Task Key匹配的单位开始增援，接敌按反应时间停车，解除威胁后继续路线。
+6. 到达最后一个路线点后原地驻守，不自动进入城市，也不无限追击敌军。
+目前只提供任务激活接口，城市威胁区、求援等待、预警提示、次数限制和胜负目标需要下一步的关卡控制脚本配置。
+援军需要预置在合法位置；本次没有添加凭空生成援军的关卡事件。
+
+七、炮兵行为
+炮兵放在合法阵地，引用DefaultArtillery任务。
+AI通过原有命令停车并展开，等待原有部署计时完成。
+只对B方当前可见且在实际射程内的敌军下达炮击命令。
+目标按稳定的单位标识顺序选择，第一版不推测未知兵种、不预判移动目标、不自动换阵地。
+如目标落弹圈内当前存在己方地图部队，跳过该目标，尝试其他目标。
+这一友伤检查只依据下令时的位置；2秒延迟中友军仍可能进入落弹区，游戏的实际友伤规则照常生效。
+冷却未结束时不重复下达发射命令，炮兵伤害、兵力、预算分摊、工事保护全部调用已有系统。
+没有新增AI专属免伤、伤害加成、无视视野或无视冷却。
+炮兵任务目前不读取Waypoints；要先在场景中放好阵地。
+
+八、共用的原有接口
+BattleInformationSource.GetVisibleArmyIds/GetArmy，以B为观察者获取信息。
+AI不直接扫描A方真实位置来做追踪，不知道隐藏部队在哪里。
+BattleCommandService.Submit，下达StopMovement、RoadDestination、FreeDestination、ToggleArtilleryDeployment和ArtilleryFire。
+自己的单位可读取炮兵就绪、施工占用等状态；这不是读取隐藏敌情。
+普通部队依靠既有战斗系统自动开火，AI只决定移动/停车及任务，侦察兵和运输车不会因此获得攻击。
+
+九、调试参数
+GameRoot/BattleAIController：AI Enabled总开关，Player Id默认B。
+Decision Interval默认0.25秒，表示思考间隔，不是伤害结算步长。
+Pause When Player Controlled默认开启：切换当前玩家到B后暂停AI决策，便于手动检查敌军；已有移动命令和已发射炮弹不会因此停止。
+Assign Unconfigured Units默认开启；关闭后只控制明确挂了AIUnitOrder并配置Task的B方部队。
+任务配置默认Reaction Seconds=1，Clear Contact Seconds=1，Retry Seconds=2，Arrival Distance=0.08。
+这些均为测试值，在资产和场景Inspector里可修改。
+运行时选中军队，看AIUnitOrder的State及Last Command Reason，可判断是等待、行军、接战，还是路线被拒绝。
+
+十、与三阶段关卡方案的关系
+01可直接使用守备任务。
+02、04的慢速巡逻可用巡逻任务，单位速度沿用原有参数/命令。
+10、12的预备队与道路援军可通过Task Key激活。
+04、09及后期炮兵可用固定阵地火力支援任务。
+已新增AIRecoveryResponse自动回城恢复、AISupplyResponse自动资源装卸和AICityReliefTrigger城市求援；挂载与组合见《AI分类应对与挂载清单.txt》。
+尚未实现完整的跨任务改派、工兵自主施工、多防线退守、关卡胜负和教学进度。
+后续可以在现有AI框架中加任务类型，保持信息与命令入口不变。
+
+十一、验证
+在现有Battle01中进行了24项实际运行检查：默认任务注册、视野过滤、守备、反应延迟、威胁解除等待、增援激活、手动接管暂停、非法路线失败重试、合法巡逻、避免重复移动命令、主动停车、继续原路线、炮兵展开、施工状态显示、友军风险和冷却。
+测试中的临时路线及临时炮兵只用于验证，没有保存为正式关卡部署。
+

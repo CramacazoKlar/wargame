@@ -1,0 +1,27 @@
+图片规格：512×432，透明背景，黑色符号。用户指定编制标记：班 ●●；排 ●●●；连 I；营 II；团 III。班使用两个点为游戏自定义，其余采用此前的常规标记。
+图片中没有名称、番号或其他文字。城市、收集器无编制标记。
+本包使用现成 APP-6 符号图及 milsymbol 标准符号库，移除背景、统一尺寸、增加编制标记并转为PNG。符号原图并非本项目原创。
+收集器使用补给符号作为游戏用途替代；运兵车使用标准敞斗货车装备符号；资源运输车使用标准大型厢式货车装备符号；城市使用普通地图定位符号。车辆上方的班到团标记用于本游戏车辆编队，属于游戏用法。
+
+原作者及贡献者：Brodo、Noclador、Chabacano、Los688、EclecticArkie；各文件准确作者及授权以以下原始文件页为准。
+山地步兵恢复原版大山峰绘图，原图作者 Brodo，选用 CC BY 2.5：https://creativecommons.org/licenses/by/2.5/
+士兵原图作者 Brodo，沿用原文件许可；其他图片原文件页列有公有领域或 Creative Commons 授权。本包不变更原图许可。
+
+士兵：https://commons.wikimedia.org/wiki/File:APP-6_Infantry.svg
+工兵：https://commons.wikimedia.org/wiki/File:APP-6_Engineer.svg
+侦察兵：https://commons.wikimedia.org/wiki/File:APP-6_Reconnaissance.svg
+坦克：https://commons.wikimedia.org/wiki/File:APP-6_Armored.svg
+炮兵：https://commons.wikimedia.org/wiki/File:APP-6_Artillery.svg
+山地步兵：https://commons.wikimedia.org/wiki/File:APP-6_Mountain_Infantry.svg
+收集器（补给替代）：https://commons.wikimedia.org/wiki/File:APP-6_Combat_Supply.svg
+运兵车（敞斗货车）：MIL-STD-2525C SFGPEVCO-------
+资源运输车（大型厢式货车）：MIL-STD-2525C SFGPEVCUH------
+车辆符号来源：https://www.symbol.army/doc/en/more/list-of-mil-std-2525c-symbols/
+车辆绘图库：milsymbol 2.2.0，作者 Måns Beckman，MIT 许可：https://github.com/spatialillusions/milsymbol
+城市：https://commons.wikimedia.org/wiki/File:Circular_map_symbol.svg
+颜色：己方框内填充浅蓝 #B8DFFF；敌军框内填充浅红 #FFC2C2。外框、兵种图案、级别标记均黑色。框外透明，每张512×432。
+己方使用此前矩形外框，敌军使用milsymbol标准敌军菱形外框，兵种图案按敌军框形调整。
+班两个点为用户自定义；排三个点、连一竖、营两竖、团三竖。城市、收集器没有编制。
+城市保留普通地图定位符号；收集器借用补给符号。敞斗货车用于运兵车，大型厢式货车用于资源运输车。车辆框形及编制组合沿用本游戏约定，整套不宣称严格符合完整军标标准。
+己方山地步兵使用之前恢复的原版图，敌军山地步兵使用标准库敌军图案。
+敌军标准图案由milsymbol 2.2.0绘制，作者Måns Beckman，MIT许可，完整许可附本包。

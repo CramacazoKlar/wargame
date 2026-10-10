@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb5210bd2e574b4290008cfe91aec34, type: 3}
+  m_Name: MountainInfantryMovement
+  m_EditorClassIdentifier: 
+  displayName: "\u5C71\u5730\u6B65\u5175"
+  speed: 1.2
+  prefab: {fileID: 0}
+  freeMarchDefinition: {fileID: 11400000, guid: a9136f86f629d6d4f92bce28952c292a, type: 2}
+  icon: {fileID: 0}
+  iconSize: {x: 0.8, y: 0.5}
+  iconColor: {r: 0.15, g: 0.75, b: 0.95, a: 1}

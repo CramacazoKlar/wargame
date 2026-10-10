@@ -1,0 +1,290 @@
+﻿兵团战役 Demo：模式3显示与配置说明
+适用项目：C:\Users\ZWQ\Desktop\wargame
+适用场景：Assets/Scenes/Battle01.unity
+版本：2026-10-05，模式3显示更新后
+
+一、先看这次增加和修改了什么
+
+1. 按1：道路行军。地图上不显示据点名称、军队番号、人数百分比和范围圈。
+2. 按2：自由行军。上述文字、范围圈同样不显示。
+3. 按3：查看与管理。
+   显示据点名称；显示我方地图上军队的番号和剩余人数百分比。
+   显示全部我方地图上军队的视野圈、攻击圈，不需要逐一选中。
+   点击军队或据点，右侧显示对应信息和可执行按钮。
+4. 重复按3没有额外切换效果。按3不会停止已经下达的行军命令，只是不允许新画移动路线。
+5. 地图文字没有方块底板。据点名称仍可点击；右侧详情、底部统计仍有棕色面板。
+6. 视野圈默认蓝色，攻击圈默认橙色。圆的半径读取实际战斗数据，随军队移动与地图缩放显示。
+7. 敌军不显示私有番号，也不显示范围圈。按3时：可见且已识别的敌军显示人数百分比；可见但未识别的敌军显示问号。
+8. 进入恢复据点的部队不在地图上单独显示，也不显示范围圈；我方据点名称旁显示内部军队小图标，按3可点击查看。
+9. 底图图片里原本印着的城市名称不会被这些脚本隐藏。此次只控制程序生成的标签。
+
+二、已经配置好的项目怎么用（不用重建）
+
+1. 用Unity打开wargame，打开Assets/Scenes/Battle01.unity。
+2. 等脚本编译完成，查看Console有没有新的红色报错。
+3. 点击Play，点击Game窗口，再按键盘上方3或小键盘3。
+4. 查看军队上方的名称和百分比、据点下方的名称、蓝色及橙色范围圈。
+5. 左键点击我方军队，右侧出现军队信息。
+6. 左键点击据点名称，右侧出现据点信息；我方据点会显示库存和内部部队。
+7. 按1或2：程序生成的地图名称、百分比和范围圈隐藏。
+8. 右上“切换玩家”：切换本地观察视角；这不是联网，也不是回合切换，模拟仍继续。
+
+三、各脚本放在哪个对象上
+
+Main Camera
+  挂Camera，使用Orthographic正交模式。
+  现有声音功能使用AudioListener，场景只保留一个启用的AudioListener。
+
+GameRoot
+  RoadMarchSceneSetup：绑定地图、相机、移动参数和场景军队。
+  MouseModeStateMachine：负责1、2、3模式切换。
+  BattleWorld：负责战斗、军队状态、可见性、识别、据点及玩家视角。
+  TerritoryControlSystem：持续区域控制与颜色显示。
+  MapZoomController、MapPanController：缩放和平移。
+  GameSettingsController：已有设置面板与音量/灵敏度绑定。
+
+MapRoot
+  RoadMapRuntime：绑定道路地图数据资产。
+  FreeMarchMapRuntime：绑定地形数据资产。
+  RasterWaterMap：当前参考底图的水域识别和桥梁通行数据。
+  原有OwnershipMapRuntime可以保留；当前动态领土由TerritoryControlSystem负责。
+
+ArmyRoot下的每个军队对象
+  SpriteRenderer：棋子贴图。
+  ArmyRoadMover：道路行军数据与执行接口。
+  BattleUnit：所属玩家、唯一编号、显示番号、战斗类型、初始人数百分比。
+  ArmyFreeMarchMover：自由行军配置；运行初始化时可以自动添加。
+  ArmyRouteMotor：执行路线；运行初始化时可以自动添加。
+  BattleUnitView：按玩家视角显示军队；BattleWorld初始化时可以自动添加。
+  ArmyTacticalInfo：旧战术显示信息组件，不是本次范围圈的数值来源。
+
+FacilityRoot下的每个据点对象
+  RecoveryPoint：据点名称、归属、库存、恢复和占领参数。
+  SpriteRenderer：需要可见据点图标时，由你自己设置。
+
+Command UI（Canvas对象）
+  Canvas、CanvasScaler、GraphicRaycaster。
+  BattleHUD：运行时创建右侧详情、底部统计、地图标签和范围圈。
+  MapReferenceHUD：已有比例尺与指北针。
+
+EventSystem
+  保留已有EventSystem及输入模块，负责UGUI按钮交互。
+
+注意：当前Battle01已经配置。不要为了使用本次功能再添加第二套GameRoot、BattleWorld或BattleHUD，否则可能重复生成UI或重复模拟。
+
+四、配置BattleHUD（这次显示更新的核心）
+
+1. 停止Play，在Hierarchy选中Command UI，不是Project里的BattleHUD.cs脚本文件。
+2. 在Inspector找到Battle HUD组件；找不到时先确认选中了Canvas对象。
+3. World：拖入Hierarchy里的GameRoot，使用它上面的BattleWorld组件。
+4. Font：可以留空，运行时优先寻找系统中文字体；也可以拖入支持中文的Font资产。
+5. Map Label Font Size：地图文字字号，默认16，允许12～28。
+   据点名称、军队番号和百分比使用这个字号；不会改变右侧详情字号。
+6. Range Circle Segments：圆的分段数，默认80，允许32～160。
+   越大越圆滑；军队多时不必设得特别高。
+7. Range Circle Width：范围圈线宽，默认0.025，单位为世界坐标长度。
+   建议先试0.02～0.05。不是屏幕像素，缩放时视觉粗细会变化。
+8. Vision Circle Color：视野圈颜色，默认半透明蓝色。
+9. Attack Circle Color：攻击圈颜色，默认半透明橙色。
+   颜色选择器中的Alpha决定透明度，设为0就看不到。
+
+这些字段可以在Play中调整观察效果；要保留场景组件修改，请停止Play后再填一遍并保存场景。
+UI面板位置、标签偏移、标签框宽高目前写在BattleHUD代码里，还没有全部暴露到Inspector。
+范围圈运行时生成，不要手动创建LineRenderer，也不用手工绑定材质。
+
+五、为每个军队设置番号和归属
+
+1. 停止Play，在Hierarchy展开ArmyRoot，选择一个具体军队。
+2. 在Battle Unit组件中设置：
+   Unit Id：唯一内部编号，例如A-1、A-2、B-1。
+     每个军队必须不同且不能为空；复制军队后必须改这个编号。
+   Designation：地图和右侧详情显示的番号，例如“第1步兵团”。
+     可以中文；留空则显示Hierarchy中的对象名称。
+     不要把多个军队的显示名字都塞进Unit Id，二者用途不同。
+   Owner Id：所属玩家，例如A或B，必须与BattleWorld.Players中的字符串完全一致。
+   Combat Definition：拖入该兵种的Army Combat Type数据资产。
+   Starting Personnel Percent：开局人数百分比，1～100；例如70表示开局70%。
+3. 保存场景，Play后按3查看。
+
+Designation不向敌军公开，内部Unit Id也不作为敌方地图标签显示。
+初始百分比在初始化时应用，Play中修改这个字段不会直接重设当前人数；停止后修改再运行。
+运行时人数由战斗和恢复系统计算，不直接在Inspector里填Personnel。
+
+六、设置攻击范围、视野范围、建制和伤害
+
+这类数据属于ScriptableObject资产，不是挂在空对象上的脚本。
+
+已有配置：到Assets/Game/Data/Combat查找已有步兵和装甲战斗资产。
+新建配置：Project窗口右键 → Create → Campaign Demo → Army Combat Type。
+
+选中资产，在Inspector修改：
+Unit Type：类型名称，例如步兵、装甲。
+Echelon：建制，Squad班、Platoon排、Company连、Battalion营、Regiment团、Brigade旅、Division师、Corps军。
+Squad Size：最小班人数，默认7。
+Echelon Ratio：每级人数倍率，默认3，面板允许2～4。
+Full Strength Attack：满人数的基础攻击参数。
+Defense：防御参数；当前公式中防御越高，承受的人数损失越少。
+Vision Radius：视野半径，世界坐标单位。
+Attack Radius：攻击半径，世界坐标单位。
+
+然后将资产拖入具体军队的Battle Unit → Combat Definition。
+
+例如：Vision Radius=3.5，Attack Radius=1.1。
+按3时蓝圈半径3.5，橙圈半径1.1。这两个数不是屏幕像素，也不是自动测量得到的真实公里。
+比例尺中的Meters Per World Unit是另外设置的世界长度标定；应由你统一决定地图尺寸与距离。
+当前右侧详情尚未直接显示两个半径数值，需要在战斗资产面板中查看。
+
+实际自动攻击要求目标同时在攻击范围和视野内；如果攻击半径大于视野半径，圈外侧那部分也不能攻击不可见目标。
+范围圈显示圆形距离，不是山地遮挡、建筑遮挡后的精确可见区。目前没有视线遮挡计算。
+修改共用战斗资产会影响所有引用它的军队；不同类型要不同数值，就分别建立资产。
+攻击、防御和半径按当前数据读取；在Play中调资产后会影响后续计算和显示。
+建制、班人数、级别倍率建议停止Play后修改，因为当前人数不会随新编制自动重新初始化。
+ScriptableObject在Editor运行中修改可能保留下来，调试前最好备份或记录原值。
+
+七、新增一支军队的完整操作
+
+最快方式是复制已配置军队，避免漏组件。
+
+1. 停止Play，Hierarchy选中ArmyRoot下一支已有军队，Ctrl+D复制。
+2. 修改物体名称与位置，放在地图可通行处。
+3. SpriteRenderer → Sprite：拖入你自己的棋子Sprite。
+   修改Sorting Layer / Order in Layer，保证军队在底图上方。
+   手工放置对象的贴图要在SpriteRenderer配置；ArmyDefinition里的Icon不会自动替换这个手工对象的Sprite。
+4. ArmyRoadMover → Definition：拖入道路行军用Army Type资产。
+   这是移动资产，不是Army Combat Type，不能互相代替。
+5. 需要独立道路速度时勾Override Speed，再填Speed Override。
+   不勾时使用移动资产的Speed。
+6. ArmyRoadMover → Water Map：保持绑定MapRoot的RasterWaterMap，避免离路接近道路时跨水。
+7. 设置自由行军：ArmyFreeMarchMover → Definition，或Army Type资产中的Free March Definition。
+   不同单位的地形权限、模式2减速、地形额外减速在自由行军数据中配置。
+8. BattleUnit设置新的Unit Id、Designation、Owner Id、Combat Definition、Starting Personnel Percent。
+9. GameRoot → RoadMarchSceneSetup → Scene Armies：数组长度加1，把新对象拖入新元素。
+10. GameRoot → BattleWorld → Units：数组长度也加1，把同一军队拖入新元素。
+11. 保存场景，再Play测试1、2、3。
+
+两个数组用途不同：Scene Armies登记移动对象；Units登记战斗和视角对象。新增军队需要同时登记，不能只填一个。
+数组里的Element 0、Element 1只是数组项，不代表步兵、坦克或敌人；对象自身的数据决定它是什么。
+同一数组不要重复登记同一军队，不要留下None空项。
+现阶段地图标签在启动时按已登记军队创建；还没有完善运行中生产军队的动态注册流程。
+
+八、配置据点名称和恢复功能
+
+1. 停止Play，Hierarchy展开FacilityRoot，选中具体据点。
+2. 找到Recovery Point组件。
+3. Display Name：修改据点名字，例如“西岸指挥所”。
+   这是按3出现的名字；不是底图图片里原来的地名。
+4. Point Id：独立编号，建议保持唯一，例如WestPoint。
+5. Owner Id：A或B表示所属玩家；空字符串表示中立。
+6. Kind：Recovery Point为占领和恢复据点；Factory/Mine目前只有类别与统计，没有生产、开采逻辑。
+7. Capture Radius：参与占领判定的半径，世界单位。
+8. Interaction Radius：允许申请进入恢复点的距离，世界单位。
+9. Capture Seconds：占领所需时间，秒。
+10. Transition Seconds：进入/离开所需时间，秒。
+11. Capacity：内部可收纳军队数量，不是人数总量。
+12. Repair Fraction Per Second：每秒恢复满编人数的比例。
+    0.02表示每秒恢复满编的2个百分点；还会受当地库存影响。
+13. Resource Stock：这个据点自己的资源库存。
+14. Resource Per Person：每恢复1个人需要多少资源。
+15. Exit Offset：出点时相对于据点的位置偏移。
+    必须放在安全可通行位置，当前不会自动搜索安全出口。
+
+新建据点：创建空对象，挂RecoveryPoint，需要图标则再挂SpriteRenderer；然后加入BattleWorld → Points数组。
+现阶段据点地图标签也在启动时创建，所以请在Play前完成登记。
+据点名称按钮只有模式3显示和可点击。1、2隐藏名称，不会删除据点本体或底图地名。
+
+进入恢复点的操作：
+按1或2把我方军队移到我方恢复点附近 → 按3 → 点击军队 → 右侧“进入恢复点”。
+进入完成后军队本体隐藏 → 点击据点旁的军队图标 → 右侧“开始恢复”。
+可在右侧“取消恢复”或“出点”。据点内军队不提供视野、不攻击、不防守。
+交战中的军队不能直接进入；附近有敌军、距离不足、容量满等情况也会阻止进入。
+右侧目前只有3行据点内部部队快捷列表；地图旁图标按容量创建，容量大于3时右侧列表没有全部展开。
+
+九、配置BattleWorld与玩家视角
+
+选中GameRoot → Battle World：
+Setup：拖入GameRoot上的RoadMarchSceneSetup。
+Units：登记全部A、B等玩家的军队，不只是当前玩家。
+Points：登记全部据点。
+Players：玩家编号数组，例如A、B；要添加C，扩展数组并填C。
+Current Player：开局观察玩家，填写Players中的一个编号。
+Fog Enabled：勾选时按我方视野隐藏敌军。
+Reveal Types Without Fog：关闭迷雾时是否直接公开敌方类型；默认关闭，仍保留识别规则。
+Unknown Unit Sprite：未识别敌军的通用棋子贴图。
+Simulation Step：战场计算间隔，默认0.1秒。
+Escape Loss Fraction：逃跑损失比例，默认0.1，即损失当前剩余人数的10%。
+Escape Grace Seconds：逃跑状态持续时间，默认5秒；期间不能开火，仍会受攻击。
+Personnel Limit：当前底部显示的建制容量参考值；生产未做，因此暂时不是生产容量限制逻辑。
+Territory：拖入GameRoot上的TerritoryControlSystem。
+
+“切换玩家”是本地切换视角，敌方私有路线和右侧详细数据不会因此提供给当前玩家。
+在视野内发现未知敌军不等于识别兵种；交战识别后保留记录，完全进入恢复据点后重置。
+
+十、区域控制与地图显示配置
+
+GameRoot → Territory Control System：
+World：GameRoot的BattleWorld。
+Bounds：与底图对应的世界坐标范围。
+Use Pixel Cell Size：当前勾选，使用原图像素尺寸划分固定归属格。
+Map Pixels：原始图片像素尺寸，当前1995×1348。
+Cell Pixels：每格对应原图像素尺寸，当前128×128。
+Only In Inspection Mode：勾选表示只在3显示区域颜色。
+Own Color：我方颜色，默认半透明绿色。
+Enemy Color：关闭迷雾时敌方颜色，默认半透明红色。
+Cell Size：不使用像素格时采用的世界单位格尺寸。
+
+缩放相机不会改变归属格大小。Bounds、Map Pixels、Cell Pixels请停止Play后修改并重新运行，当前不会动态重建网格。
+我方离开后控制保留，不采用相邻四格传播；敌方人数严格更多时可改变控制，平局保留已有归属。
+有归属的恢复据点优先决定所在格归属。尽量不要把不同阵营的据点放进同一格。
+底部统计的区域百分比当前按整个Bounds面积计算，包含水域。
+
+十一、实际调试顺序
+
+1. 先改一支我方军队的Designation，例如“第101步兵团”。
+2. 把它的Starting Personnel Percent设为70，Play按3，确认显示70%。
+3. 选中该军队引用的Combat Definition，把Vision Radius暂时改为4，Attack Radius改为1。
+4. 回Game窗口确认蓝圈更大、橙圈较小；确认所有我方在地图上的军队都有两个圈。
+5. 按1，再按2，确认地图文字和圈隐藏；按3重新出现。
+6. 点击军队检查右侧；点击据点名称检查右侧切换。
+7. 测试入点、恢复、出点，确认隐藏军队不再显示圈。
+8. 点击切换玩家，确认只显示新玩家自己军队的圈和番号。
+9. 停止Play，把需要保留的场景组件参数重新填写并Ctrl+S保存。
+
+十二、常见问题排查
+
+按3没反应：先点Game窗口让它获得键盘焦点；检查MouseModeStateMachine是否启用，以及Setup的Modes引用。
+军队没有文字/没有圈：检查是否登记在BattleWorld.Units、是否己方、是否存活且在地图上、Combat Definition是否绑定。
+进入据点后军队没了：这是预期行为，按3从据点名字旁的小图标或右侧内部列表选择。
+番号不对：检查BattleUnit.Designation；留空就使用对象名称。
+圈大小不对：改Combat Definition的半径，不是ArmyTacticalInfo里的旧数值。
+改了半径其他军队也变了：它们引用了同一份数据资产，复制资产并分别绑定即可。
+1、2还看到城市文字：如果文字来自底图PNG，不能通过模式隐藏；如果是重复旧UI，检查是否有第二套HUD/初始化对象。
+名称看不到：程序会隐藏落在屏幕外或被右侧/底部UI遮挡位置的地图标签；平移地图后再看。
+没有中文：BattleHUD.Font绑定支持中文的字体；默认使用系统中文字体。
+双层圈或多套文字：检查RoadMarchSceneSetup.Show Tactical Overlays保持关闭，旧TacticalMapDisplay可能产生额外显示；不要同时挂两套BattleHUD。
+点名称不方便：当前通过名称按钮选据点，尚未提供统一的据点本体点击拾取。
+复制军队后初始化报错：优先检查重复Unit Id、Owner Id拼写、两个军队数组空项、移动/战斗资产漏绑定。
+
+十三、当前脚本之间的关系
+
+ArmyDefinition、ArmyFreeMarchDefinition：移动配置，负责速度和地形权限。
+ArmyCombatDefinition：战斗类型配置，负责建制、攻击、防御、实际范围。
+BattleUnit：单个军队运行状态与人数。
+BattleWorld：统一模拟规则、视野和情报查询。
+BattleHUD：读取上述数据并显示；本次范围圈也在这里生成，不参与伤害计算。
+RecoveryPoint：据点配置和局部资源状态。
+TerritoryControlSystem：控制归属的固定格数据和渲染。
+MouseModeStateMachine：告诉控制器/UI当前为1、2还是3。
+RoadMarchSceneSetup：绑定并初始化移动系统。
+
+移动数据与战斗数据分开；地图也独立于军队数据。换贴图不需要改战斗公式。
+目前BattleHUD仍直接调用部分军队/战场操作，后续AI和联网时再统一到命令入口；不要把它理解成已经完成网络架构。
+
+十四、还没有做的功能
+
+未做：正式小地图、生产新军队、矿产开采、城市之间资源运输/补给线、侦察器、人机AI、联网、正式回合调度、胜负结算、存档、完整教学。
+未做：山体/建筑视线遮挡、复杂UI排版编辑器、全部面板参数可调、所有初始化数据热更新、运行中生产对象的完整注册流程。
+声音设置和音量控制已有，但BGM/音效素材仍需要你提供和绑定。
+此次没有重画道路，没有重新初始化底图，也没有加入资源运输系统。
+
+本次模式3代码更新后：Unity编译和67项自动检查通过。
+本说明基于当前实际脚本，不是未来功能承诺。调试时优先使用现有Battle01，避免同时重建地图和改战斗参数。

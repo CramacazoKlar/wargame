@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &8922185681680484151
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6635531768676130508, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8636048241301599655, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      propertyPath: m_Name
+      value: InfantryRecovery_Squad
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8636048241301599655, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2326613645547110120}
+    - targetCorrespondingSourceObject: {fileID: 8636048241301599655, guid: 122916dced2ab75479e97a3780666619, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2468700432057270125}
+  m_SourcePrefab: {fileID: 100100000, guid: 122916dced2ab75479e97a3780666619, type: 3}
+--- !u!1 &867101832215753360 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8636048241301599655, guid: 122916dced2ab75479e97a3780666619, type: 3}
+  m_PrefabInstance: {fileID: 8922185681680484151}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2326613645547110120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 867101832215753360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c54024cbbc591246b0d1f215ec92b6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  task: {fileID: 11400000, guid: 2a5af17167ff0ac44bb82b051ebb7f17, type: 2}
+  taskKey: 
+  profileOverride: {fileID: 0}
+  requiredUnits: []
+  arrivalCity: {fileID: 0}
+  life: 0
+  finishReason: 
+  state: 0
+  lastCommandReason: 
+--- !u!114 &2468700432057270125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 867101832215753360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87fc1fd037007944597fecd6d8319541, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  retrySeconds: 2
+  responseState: 
+  seekRecoveryBelow: 0.4
+  returnAbove: 0.9
+  visibleDangerRadius: 2
+  useRoad: 1
+  keepLastCityGuard: 1
+  returnToGuardPosition: 1
+  preferredCity: {fileID: 0}
+  responsePriority: 100

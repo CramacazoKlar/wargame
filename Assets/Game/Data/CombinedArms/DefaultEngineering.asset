@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31f470c3411640c4db7ec54d49bd1f22, type: 3}
+  m_Name: DefaultEngineering
+  m_EditorClassIdentifier: 
+  buildSeconds: 6
+  engineerDismantleMultiplier: 0.2
+  interactionRadius: 0.8
+  fortificationRadius: 0.3
+  ordinaryDismantleSeconds: 15
+  metersPerWorldUnit: 1000
+  lineBuildSecondsPerMeter: 0.01
+  lineCostPerMeter: 0.1
+  lineDismantleSecondsPerMeter: 0.02
+  lineHealthPerMeter: 0.1
+  minimumLineWorldLength: 0.03
+  drawingSampleWorldDistance: 0.03
+  maximumLinePoints: 512
+  parapetSpacing: 0.15
+  parapetDepth: 0.08
+  lineVisualWidth: 0.06
+  lineOutlineWidth: 0.1
+  lineColor: {r: 0, g: 0, b: 0, a: 1}
+  lineOutlineColor: {r: 0.12, g: 0.1, b: 0.07, a: 1}
+  constructionArrivalDistance: 0.05
+  navigationCellSize: 0.15
+  navigationSearchLimit: 60000
+  allowEnemyAutomaticDemolition: 0
+  demolitionSnapDistance: 0.2
+  demolitionSampleDistance: 0.04
+  minimumBreachWorldLength: 0.05
+  ownLineDemolitionTimeMultiplier: 0.5
+

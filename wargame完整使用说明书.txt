@@ -1,0 +1,910 @@
+﻿【新增版本说明】
+工程现已接入基础战斗、情报、玩家视角、区域控制和恢复据点。
+下面保留的是原移动版本说明，其中未完成列表和模式 3 旧规则已部分过时。
+请先阅读同目录《战斗与据点系统新增说明.txt》，以新增说明为准。
+
+《兵团战役 / wargame Demo 完整使用说明书》
+版本：按 2026 年 10 月 5 日当前工程编写
+工程目录：C:\Users\ZWQ\Desktop\wargame
+Unity 版本：2022.3.62f3c1
+主场景：Assets/Scenes/Battle01.unity
+
+============================================================
+一、当前工程是什么
+============================================================
+
+这是一个连续地图上的军队指挥移动 Demo。
+玩家通过地图上的军事棋子选择军队、绘制路线，并控制镜头。
+目前重点是移动、地图数据配置和基础设置，尚未成为完整的对战游戏。
+
+目前采用实时移动，没有回合推进系统。
+军队和地图是独立对象；军队类型、地图数据是独立资产。
+运行时读取已经配置好的地图和军队，不自动生成新的示例道路或军队。
+初始化仍会建立道路查询网络、地图背景、移动执行组件和路线显示对象。
+这里的“初始化”是加载已有数据，不是重新设计或绘制地图。
+
+你提供的图片已作为底图接入。
+主要道路按照图片描线，小路并未全部录入。
+道路数据和底图共用坐标；桥与河流用于隐藏的通行判断。
+描线属于测试版近似数据，不等于整张图片已经完成逐像素道路建模。
+
+============================================================
+二、已经实现的功能与当前限制
+============================================================
+
+【1. 模式 1：沿道路行军】
+按 1，左键按住一个军队，沿图片中的已录入道路拖动，松开确认。
+绘制路线会吸附到隐藏道路网络，而不是沿鼠标轨迹随意穿过地形。
+鼠标与道路之间允许有一定误差，容差可以配置。
+军队不在道路上时，会增加一段通向最近道路的接近路线。
+当前接近路线是直线；如果直线跨水，会拒绝，不会自动绕水寻找另一条接近路线。
+路线不合法时保留旧命令，不提交新的路线。
+军队按照该类型的道路原始速度移动。
+运行时不显示额外的永久道路描线。
+
+【2. 模式 2：自由行军】
+按 2，左键按住军队，自由绘制路线。
+根据该军队的地形权限和地图禁行数据判断路线是否有效。
+无效路线显示红色；松开后不会执行，旧路线保留。
+有效路线按不同地形拆分，以相应速度执行。
+目前是整条新路线接受或拒绝，不会自动把不可通行的一段改成绕行路线。
+
+速度公式：
+实际速度 = 道路原始速度 × (1 - 模式 2 减速百分比/100)
+           × (1 - 当前地形额外减速百分比/100)
+
+例如：原始速度 2，模式 2 减速 25%，山地额外减速 50%，结果为 0.75。
+不同类型军队可以使用不同的参数资产。
+当前参考地图主要区分道路走廊、普通地面和图片上的水。
+山地、草地、森林等并没有根据整张图片自动完成精细识别，需要你继续画地形区域。
+
+【3. 模式 3：战术显示状态】
+按 3 进入交互模式；继续按 3，依次切换：
+军队状态 → 视野圈 → 攻击圈 → 区域归属 → 军队状态。
+按 1 或 2 返回对应移动模式。
+
+重要：当前 Battle01 为保持底图干净，关闭了 Show Tactical Overlays。
+所以按 3 可以改变内部显示状态，但当前场景不会显示范围圈和军队状态文字。
+它不是已经完成的城市交互、建造交互或攻击模式。
+视野和攻击半径目前只是显示参数，不会产生侦察或伤害。
+
+【4. 镜头平移】
+W/A/S/D 移动镜头，右键按住拖动也可以移动镜头。
+右键目前不承担攻击或框选功能。
+正在画路线时按右键会取消绘制，恢复军队原来的命令执行。
+左键按住期间默认不允许平移镜头。
+可以设置平移速度、拖动灵敏度和镜头中心边界。
+边界限制的是镜头中心，不保证画面边缘始终位于地图内部。
+
+【5. 缩放】
+滚轮和左侧 UGUI 滑条控制同一个正交相机尺寸，并保持同步。
+RESET 按钮恢复到最小尺寸与最大尺寸的算术中间值。
+当前场景最小尺寸 3，最大尺寸 25，中间尺寸 14。
+正交尺寸越小，看得越近；越大，看得越远。
+默认画路线时限制滚轮缩放，避免绘制过程中坐标突然改变。
+
+【6. 设置】
+左上 SETTINGS 按钮打开或关闭棕色设置面板。
+Map pan sensitivity：右键拖动地图时的灵敏度。
+Route sensitivity：绘制路线时的灵敏度。
+BGM volume：背景音乐音量。
+Effects volume：音效音量。
+设置通过 PlayerPrefs 保存，重新运行仍会读取。
+
+规划灵敏度的实际含义：
+以按下左键的位置为锚点，缩放鼠标拖动对应的路线端点位移。
+它不会修改 Windows 鼠标灵敏度，也不会改变系统鼠标指针的位置。
+非 1 倍时，路线端点可能不与系统鼠标指针完全重合。
+右键拖动灵敏度与规划灵敏度独立；WASD 速度由 Keyboard Speed 单独控制。
+
+目前音源和音量控制已接好，但 BGM 与音效素材留空。
+游戏没有自动播放战斗声、移动声等事件，因为相关事件系统尚未实现。
+
+【7. 比例尺和指北针】
+比例尺随正交相机尺寸变化，自动选择 1/2/5 系列的距离值。
+指北针根据地图北向和相机绕 Z 轴的角度更新。
+单纯缩放不会改变北向，这是正常行为。
+目前没有镜头旋转操作，只保留了北向显示参数。
+Meters Per World Unit 当前为 1000，是测试映射，必须按地图实际距离校准。
+不能把现有“km”数值直接当成该地图真实测绘距离。
+
+【8. 河流禁行】
+RasterWaterMap 根据这张底图的蓝色像素特征判断水域。
+普通军队不能跨水，桥梁豁免区域允许通行。
+模式 1 的道路命令与模式 2 的自由命令都有水域校验。
+已配置两处主桥及录入道路上的短小水道交叉豁免。
+这是针对当前图片的测试判定，不是能识别任意地图的通用视觉系统。
+
+【9. 自定义地图和单位】
+可以在编辑器中画道路、地形多边形、归属区域。
+可以添加步兵、坦克等不同参数的军队类型。
+军队棋子由你在场景里摆放，放在哪个位置就从哪里开始。
+地图和军队显示图层可以独立设置。
+
+============================================================
+三、现有工程目录与对象结构
+============================================================
+
+Assets/Scenes/Battle01.unity
+    当前已经配置好的场景。
+
+Assets/RoadMarchDemo/
+    运行脚本和算法工具。
+
+Assets/RoadMarchDemo/Editor/
+    地图绘制器、显式场景配置工具、验证工具。
+    Editor 文件夹里的脚本不参与正式游戏运行。
+
+Assets/Game/Data/
+    军队类型、自由行军参数、地图、鼠标交互参数等资产。
+    当前底图使用 ReferenceRoadMap.asset 和 ReferenceTerrain.asset。
+    Map01 等旧测试资产仍保留，不代表当前场景正在使用它们。
+
+Assets/Game/Art/ReferenceMap.png
+    你提供的底图。
+
+主要对象结构：
+
+Main Camera
+    Camera
+
+GameRoot
+    RoadMarchSceneSetup
+    MouseModeStateMachine
+    MapPanController
+    MapZoomController
+    GameSettingsController
+    BGM 子物体：AudioSource
+    Effects 子物体：AudioSource
+
+MapRoot
+    RoadMapRuntime
+    FreeMarchMapRuntime
+    OwnershipMapRuntime
+    RasterWaterMap
+
+ArmyRoot
+    各个军队子物体
+        SpriteRenderer
+        ArmyRoadMover
+        ArmyFreeMarchMover
+        ArmyTacticalInfo
+
+Command UI
+    Canvas
+    CanvasScaler
+    GraphicRaycaster
+    MapReferenceHUD
+    设置按钮、设置面板、滑条、复位按钮、比例尺、指北针
+
+EventSystem
+    EventSystem
+    StandaloneInputModule
+
+运行时补齐的组件：
+GameRoot 上的 ArmySelection、RoadMarchController、FreeMarchController、TacticalMapDisplay。
+各军队上的 ArmyRouteMotor。
+道路背景和用于预览、路线、范围等的显示对象。
+
+这些运行时组件在停止 Play 后可能消失，这是正常现象。
+不需要为了让它们一直存在而重复添加另一套初始化入口。
+
+============================================================
+四、脚本分类与每个脚本的职责
+============================================================
+
+【A. ScriptableObject 数据资产：不挂在场景对象上】
+
+1. ArmyDefinition.cs
+   军队类型：名称、道路速度、图标、自由行军参数等。
+   同一种军队可以共享资产。
+   注意：当前手动摆放版本不会自动使用 Prefab 生成军队，也不会自动将 Icon
+   应用到已有 SpriteRenderer。已有棋子的贴图、缩放和颜色应直接在对象上设置。
+   Icon Size、Icon Color、Prefab 字段不能理解为当前场景必然自动应用的功能。
+
+2. ArmyFreeMarchDefinition.cs
+   模式 2 减速、地形额外减速和 Allowed Terrain 通行权限。
+   由 ArmyDefinition 和/或 ArmyFreeMarchMover 引用。
+
+3. RoadMapDefinition.cs
+   节点 Nodes、连接 Connections、背景图和道路外观。
+   Spawn Nodes / Spawn Positions 为保留字段，当前手动放置版本不靠它们生成军队。
+
+4. FreeMarchMapDefinition.cs
+   Bounds 边界、Default Terrain 默认地形、Regions 多边形区域。
+   后面的区域覆盖前面的区域。
+
+5. OwnershipMapDefinition.cs
+   区域多边形、区域名称、Unoccupied/Occupied 状态、Owner Id 和显示颜色。
+   只有预设数据和显示，没有自动占领结算。
+
+6. RoadMarchSettings.cs
+   Snap Pixels：道路吸附容差。
+   Selection Pixels：选择单位的像素距离。
+   Start Pixels：开始绘制时允许离单位多远。
+   Connector Multiplier：画线过程中连接道路的容差参数。
+   Valid / Invalid Route Color：有效与无效路线预览颜色。
+
+【B. MonoBehaviour 场景组件：可通过 Add Component 添加】
+
+7. RoadMarchSceneSetup.cs
+   主初始化入口，负责验证引用并连接地图、军队、输入、镜头和显示。
+   适合挂 GameRoot；整个场景保留一套启用的组件。
+   不在这里填写道路节点，也不把军队类型资产当成军队对象。
+
+8. RoadMapRuntime.cs
+   读取道路资产，建立世界坐标道路网络。
+   根据配置创建底图 SpriteRenderer，Show Roads 为真时额外绘制道路。
+   挂 MapRoot，Definition 引用道路资产。
+
+9. FreeMarchMapRuntime.cs
+   查询地形、校验路线、按区域边界拆分自由路线。
+   挂 MapRoot，Definition 引用地形资产，Water Map 可引用 RasterWaterMap。
+
+10. OwnershipMapRuntime.cs
+    提供归属区域资产及其坐标变换。
+    挂 MapRoot，Definition 引用归属资产。
+
+11. RasterWaterMap.cs
+    隐藏的底图像素水域判断；不绘制水域色块。
+    Source 为可读取的底图 Texture2D。
+    Local Bounds 为底图在 MapRoot 本地坐标中的覆盖范围。
+    Bridges 为桥梁豁免 Rect 数组。
+
+12. ArmyRoadMover.cs
+    军队道路速度、最近道路查询、道路命令提交。
+    每个军队挂一个，Definition 引用 ArmyDefinition。
+    Override Speed 开启后使用该棋子的 Speed Override。
+    Water Map 用于道路命令的跨水校验。
+
+13. ArmyFreeMarchMover.cs
+    单个军队的模式 2 通行判断和地形速度计算。
+    每个军队挂一个，使用同一个 ArmyRouteMotor 执行移动。
+    Override Settings 开启时，使用该组件自己的减速和权限参数。
+
+14. ArmyRouteMotor.cs
+    真正推进 Transform 的移动执行器；不读取鼠标、不选择军队。
+    运行时自动补齐，模式 1/2 共用一个，不要再加另一个移动脚本抢位置。
+
+15. ArmySelection.cs
+    根据鼠标屏幕距离选择军队，保存 Selected。
+    GameRoot 运行时自动补齐。
+    当前只支持单个选择，没有右键框选、多个单位编队或己方权限过滤。
+
+16. MouseModeStateMachine.cs
+    管理 1/2/3 模式和模式 3 的显示层切换。
+    建议手动挂 GameRoot 并绑定 Setup 的 Modes。
+
+17. RoadMarchController.cs
+    模式 1 的输入、道路吸附画线、确认、取消和预览。
+    GameRoot 运行时自动补齐并绑定引用。
+
+18. FreeMarchController.cs
+    模式 2 的输入、自由画线、禁行变红、确认和取消。
+    GameRoot 运行时自动补齐并绑定引用。
+
+19. MapPanController.cs
+    WASD / 右键镜头平移。
+    挂 GameRoot；Map Camera 引用 Main Camera。
+    Keyboard Speed 控制 WASD，Mouse Sensitivity 控制右键拖动。
+
+20. MapZoomController.cs
+    相机尺寸限制、滚轮/滑条同步、中间值复位。
+    挂 GameRoot；绑定 Camera、Zoom Slider 和 Reset Node。
+
+21. GameSettingsController.cs
+    设置面板开关、两种灵敏度、BGM 与音效音量、PlayerPrefs 保存。
+    必须与运行时的两个行军控制器放在同一个 GameRoot 上，当前代码用
+    GetComponent 获取它们。
+
+22. MapReferenceHUD.cs
+    根据相机尺寸更新比例尺长度和距离标签，根据北向更新指北针角度。
+    当前挂 Command UI；绑定相机、Text、两个 RectTransform。
+
+23. ArmyTacticalInfo.cs
+    所属玩家、名称、视野半径、攻击半径、额外状态文字。
+    每个军队挂一个。Owner Id 目前只是数据，不提供控制权限或敌我判定。
+
+24. TacticalMapDisplay.cs
+    绘制范围圈、军队状态文字和预设归属边线。
+    GameRoot 运行时补齐，当前场景禁用显示。
+    当前会直接读取军队真实信息，没有玩家情报过滤。
+
+25. RoadRouteView.cs
+    封装 LineRenderer，显示路线、圈和区域边线。
+    由系统创建，不需要给军队手动挂一个。
+
+26. RoadMarchDebugUI.cs
+    旧式 OnGUI 调试文字，适合排错，不是最终产品 UI。
+    当前 Show Debug UI 为关闭。
+
+【C. 普通 C# 工具：不能当组件挂载】
+
+27. RoadNetwork.cs
+    道路图、吸附候选、路径连接与道路追踪计算。
+
+28. TerrainGeometry.cs
+    地形多边形包含判断、线段相交、通行验证、边界拆分。
+
+29. TerrainSpeedRules.cs
+    道路原始速度、模式 2 减速、地形减速的组合公式。
+
+30. MapZoomRange.cs
+    缩放上下限、滑条值与相机尺寸转换、中间值计算。
+
+【D. Editor 编辑器工具：不能挂载到 GameObject】
+
+31. RoadMapPainterEditor.cs
+    选中 RoadMapRuntime 时提供画路按钮和 Scene 节点编辑。
+
+32. FreeMarchMapPainterEditor.cs
+    提供地形多边形笔刷与顶点编辑。
+
+33. OwnershipMapPainterEditor.cs
+    提供归属区域多边形绘制和预设归属字段。
+
+34. ProjectBootstrap.cs
+    显式创建初始测试地图、资产和 Battle01 场景。
+    不要在修改自己的场景后随便执行创建菜单，会重新配置测试内容。
+
+35. RequestedMapInstaller.cs
+    显式应用本次参考图片、道路、桥、设置 UI 和摆放位置。
+    不是每次运行自动执行的地图生成器。
+    再次执行会覆盖它负责的配置；手动修改之后不要用它当普通 Play 按钮。
+
+36. ReferenceMapVerification.cs
+    编辑器自动运行验证工具，检查河流、桥梁、移动、缩放、设置并生成预览。
+    不是玩法脚本；运行验证会切换场景和 Play 状态，部分方法结束后退出编辑器。
+    正常制作地图不需要运行它。
+
+============================================================
+五、从现有 Battle01 开始的最短流程
+============================================================
+
+1. 在 Unity Hub 添加工程 C:\Users\ZWQ\Desktop\wargame。
+2. 使用 2022.3.62f3c1 打开，等待资源导入和脚本编译完成。
+3. 在 Project 双击 Assets/Scenes/Battle01.unity。
+4. 检查 Console 是否有脚本编译错误。
+5. 点击 Play，再点击 Game 窗口，让窗口获得键盘焦点。
+6. 按 1，左键按住一个棋子，沿已录入的主路拖动，松开执行。
+7. 按 2，画一条经过普通地面的路线，再尝试画一条跨河路线。
+8. 用 WASD / 右键拖动移动镜头，用滚轮或左侧滑条缩放。
+9. 点击 SETTINGS 测试参数，点击 RESET 测试尺寸复位。
+
+先确认当前工程能运行，再逐个替换数据；不用重新执行地图创建菜单。
+在 Play 中修改大部分场景字段，停止后不会保存到场景。
+共享数据资产在编辑器中的修改可能持久保留，调整前建议复制资产。
+
+============================================================
+六、自己创建一个新场景：对象和引用如何配置
+============================================================
+
+【步骤 1：准备数据资产】
+在 Project 新建自己的目录，例如 Assets/MyGame/Data。
+右键 → Create → Campaign Demo，创建：
+
+Road Map              → MyRoadMap
+Free March Map        → MyTerrain
+Ownership Map         → MyOwnership（可选）
+Army Type             → Infantry
+Free March Army Type  → InfantryFree
+Road March Settings   → MySettings
+
+这些创建出来的是 .asset 文件，不是场景空物体，不需要 Add Component。
+Infantry 的 Free March Definition 指向 InfantryFree。
+先给 MyRoadMap 画至少一条有效道路。
+MyTerrain 设置地图边界和默认地形。
+
+【步骤 2：创建相机】
+在 Hierarchy 创建 Camera，命名 Main Camera。
+Projection 选择 Orthographic。
+位置建议 (0,0,-10)，旋转 (0,0,0)。
+Clear Flags 选择 Solid Color，背景色可用深棕色。
+相机标签可设为 MainCamera，但 Setup 中仍应明确绑定。
+
+【步骤 3：创建 GameRoot】
+Hierarchy 右键 → Create Empty → 命名 GameRoot。
+选中它，Inspector → Add Component，添加：
+RoadMarchSceneSetup
+MouseModeStateMachine
+MapPanController
+MapZoomController
+GameSettingsController（需要设置 UI 时添加）
+
+保留 GameRoot 的位置/旋转为 0，缩放为 1，便于初学阶段配置。
+
+【步骤 4：创建 MapRoot】
+创建空物体 MapRoot，添加：
+RoadMapRuntime
+FreeMarchMapRuntime
+OwnershipMapRuntime（可选）
+RasterWaterMap（需要图片颜色水域判断时添加）
+
+RoadMapRuntime.Definition → MyRoadMap。
+FreeMarchMapRuntime.Definition → MyTerrain。
+OwnershipMapRuntime.Definition → MyOwnership。
+通常保持 MapRoot 位置/旋转为 0、缩放为 1。
+
+【步骤 5：创建 ArmyRoot 和至少一个军队】
+ArmyRoot 是方便管理的空父物体，本身不需要挂军队移动脚本。
+在它下面创建一个 Sprite 棋子，具体见下一节。
+必须有至少一个军队，Scene Armies 不能是空数组。
+
+【步骤 6：绑定 RoadMarchSceneSetup】
+Road Map           → 拖入挂 RoadMapRuntime 的 MapRoot。
+Free March Map     → 拖入挂 FreeMarchMapRuntime 的 MapRoot。
+Ownership Map      → 拖入挂 OwnershipMapRuntime 的 MapRoot，可留空。
+Map Camera         → 拖入 Main Camera。
+Scene Armies       → 设置数量，逐个拖入军队对象。
+Settings           → 拖入 MySettings 数据资产。
+Modes              → 拖入 GameRoot 上的 MouseModeStateMachine。
+Zoom Controller    → 拖入 GameRoot 上的 MapZoomController。
+Pan Controller     → 拖入 GameRoot 上的 MapPanController。
+Tactical Display   → 可留空，运行时补齐。
+
+想保持当前干净地图：
+Show Debug UI = 关闭。
+Show Tactical Overlays = 关闭。
+Show Committed Routes = 关闭。
+道路资产的 Show Roads = 关闭。
+
+注意：Road Map 字段需要场景中的组件，不是 Road Map 数据资产。
+数据资产应放到 RoadMapRuntime 的 Definition 字段里。
+
+【步骤 7：绑定镜头组件】
+MapPanController.Map Camera → Main Camera。
+MapZoomController.Map Camera → Main Camera。
+有 UI 时再绑定 Zoom Slider 和 Reset Node。
+没有 UI 也可使用滚轮缩放与 WASD / 右键平移。
+
+【步骤 8：保存场景并 Play】
+运行后由 Setup 补齐输入和移动执行组件。
+不要同时保留另一个启用的 Demo 初始化根对象。
+
+============================================================
+七、如何新增军队、修改贴图和数据
+============================================================
+
+【新增一个步兵棋子】
+1. 将棋子 PNG 导入 Unity，Texture Type 改为 Sprite (2D and UI)。
+2. 将 Sprite 拖入场景，或创建带 SpriteRenderer 的物体。
+3. 命名 Infantry01，放到 ArmyRoot 下。
+4. 在 SpriteRenderer 设置 Sprite、Color、Sorting Layer / Order。
+   当前示例军队 Sorting Order 为 10，背景为 -10。
+5. 调整 Transform 的位置和缩放，使图标大小合适。
+6. Add Component → ArmyRoadMover。
+   Definition 拖入 Infantry 资产。
+7. Add Component → ArmyFreeMarchMover。
+   Definition 拖入 InfantryFree。
+8. Add Component → ArmyTacticalInfo。
+   Army Label 填名称，Owner Id 填 A 等标识。
+9. 使用当前底图时，将 ArmyRoadMover.Water Map 绑定 MapRoot 的 RasterWaterMap。
+10. 在 GameRoot 的 Scene Armies 数组增加一个元素，将 Infantry01 拖入。
+11. 保存场景后 Play。
+
+不需要设置 Spawn Nodes 来生成这个军队。
+不需要手动给它添加 ArmyRouteMotor，运行时会补齐。
+当前移动脚本运行时将军队放到 XY 平面、Z=0，显示前后关系优先用排序图层设置。
+
+【新增坦克类型】
+创建独立的 Tank Army Type 和 TankFree Free March Army Type。
+Tank.Free March Definition → TankFree。
+创建新的棋子对象，绑定这两份资产，换成坦克 Sprite。
+不同单位类型不要求写不同的移动代码。
+
+【修改道路原始速度】
+修改该类型 ArmyDefinition.Speed，所有共享该资产的军队都会受影响。
+只想修改某一个棋子：开启它的 ArmyRoadMover.Override Speed，填写 Speed Override。
+速度单位是 Unity 世界单位/秒，不是自动换算后的 km/h。
+
+【修改模式 2 速度】
+在 ArmyFreeMarchDefinition 配置：
+Mode2 Reduction Percent：只要是模式 2 就使用的减速。
+Terrain Reductions：不同 TerrainKind 的额外减速。
+Allowed Terrain：允许通过的地形，多选。
+
+只改一个棋子：开启 ArmyFreeMarchMover.Override Settings，再填组件自己的参数。
+减速和禁行独立：将山地减速设为 100% 不等于正确配置了禁止山地。
+100% 减速可能让接受的路线速度变成 0；要禁行请取消相应 Allowed Terrain。
+
+当前参考场景中，步兵和坦克自由行军都允许普通地面、道路、草地、山地，不允许水。
+这是测试配置；你要让坦克不能进入山地，应取消 TankFree 的 Mountain。
+
+【多个贴图与当前限制】
+不同军队对象可以使用不同 Sprite；一个军队也可以用子物体组合多个 SpriteRenderer。
+目前没有自动按状态切图、未知敌军图标切换或损伤图标切换。
+自己换贴图时修改场景对象的 SpriteRenderer，而不是只改类型资产的 Icon 后期待自动刷新。
+
+============================================================
+八、如何修改、重画道路和做 T 字路口
+============================================================
+
+【沿底图画路】
+1. 停止 Play。
+2. 选中 MapRoot，确认 RoadMapRuntime.Definition 绑定目标道路资产。
+3. Scene 切换到 2D 视图。
+4. 点击 Paint roads in Scene view。
+5. 左键连续点击，添加节点并连接。
+6. 弯道多放几个节点，沿图片真实道路描线。
+7. 点击现有节点可以连接岔路。
+8. Esc 结束这一笔；Start another road 开始新的一笔。
+9. 关闭绘制模式后，可以拖动节点的位置手柄。
+10. 保存资产和场景。
+
+编辑器里的节点、蓝线和标签是编辑辅助，不等于 Game 中会显示。
+Show Roads 为关闭时，运行中不会把道路数据额外画在底图上。
+
+【T 字路口】
+先画 A → B → C，其中 B 放在路口中心。
+按 Esc 结束，再从 B 画到 D，得到 B 的三个分支。
+不要只让两条线视觉上交叉，而不共用节点。
+当前工具不会自动把点击某条线的中点转换成已连接路口。
+如果主路只有 A → C，应先重画成 A → B → C，再从 B 接分支；或者手动修改连接数组。
+
+【彻底重画】
+建议先复制道路资产，保留旧版本。
+将 Nodes 数组右边的数量设为 0。
+将 Connections 数组数量设为 0。
+Spawn Nodes / Spawn Positions 若保留旧内容，也可清空，但它们不控制当前军队出生。
+不是把每个 Element 的 X/Y 都改成 0，那会把节点挤在同一个位置。
+清空后重新绘制，至少完成一条有效道路才能正常初始化。
+
+【道路网络与模式 2 的道路地形不是一回事】
+RoadMapDefinition 的节点/连接负责模式 1。
+FreeMarchMapDefinition 中 Terrain=Road 的多边形走廊负责模式 2 的道路地形速度。
+本次参考地图配置工具同时生成了这两种数据。
+之后你手动编辑道路节点，模式 2 的 Road 区域不会自动跟着更新。
+需要相应调整地形多边形，或者以后增加自动同步工具。
+
+道路不考虑拥堵、会车、车道、单位体积，也没有车辆必须沿路的额外类型规则。
+如要车辆完全不能自由越野，可以限制 Allowed Terrain，但不会自动替你补齐整张道路地形。
+
+============================================================
+九、如何画地形和禁止移动区域
+============================================================
+
+1. 选中 MapRoot，找到 FreeMarchMapRuntime。
+2. Terrain brush 选择 Ground、Road、Grass、Mountain、Water 或 Blocked。
+3. 点击 Paint polygon。
+4. 在 Scene 中依次点击顶点，至少 3 个，沿边界顺序绘制，不要自相交。
+5. Enter 或 Finish polygon 提交，Esc 取消。
+6. 重复添加区域；关闭绘制后可拖动顶点。
+
+Bounds 是地图本地坐标边界，边界之外不可自由行军。
+Default Terrain 是没有多边形覆盖时的地形。
+后面的区域覆盖前面的区域；画“洞”可以添加后置区域覆盖。
+不同军队是否可以通过，是该军队 Allowed Terrain 决定的。
+Blocked 是专门的禁行地形。
+
+当前图片的水由 RasterWaterMap 额外判断：
+仅仅在水上画一个 Road 多边形，不会关闭像素水域拦截。
+需要同步设置 RasterWaterMap.Bridges 的桥梁豁免区域。
+反过来，桥梁豁免不代表模式 1 道路网络自动生成了过桥路线。
+
+如果不想使用颜色水域识别：
+清空 FreeMarchMapRuntime.Water Map；也清空各军队 ArmyRoadMover.Water Map。
+然后用 Water / Blocked 多边形进行人工地形定义。
+注意：模式 1 目前的额外禁水是 RasterWaterMap 提供的，不会自动用所有自由行军
+地形多边形验证道路。因此人工道路也需要由你保证合法，或者后续增加统一通行接口。
+
+============================================================
+十、如何替换底图、保持数据对齐和隐藏额外图形
+============================================================
+
+【替换底图】
+将 PNG 导入，Texture Type 设置为 Sprite (2D and UI)。
+拖到 RoadMapDefinition.Background。
+Background Size 设置地图世界宽高，比例应与图片宽高一致。
+Background Center 设置底图在 MapRoot 本地坐标中的中心。
+
+当前图片为 1995×1348，测试世界宽度 36，高度约 24.324812，中心 (0,0)。
+Bounds 对应 X=-18，Y≈-12.162406，Width=36，Height≈24.324812。
+
+旧道路不会因为替换 PNG 自动识别成新道路；需要你重新描或调整。
+调整背景尺寸也不会自动同比缩放资产里的道路节点和地形顶点。
+要整体移动/缩放整套地图，可使用统一的 MapRoot 变换，但初学时建议保持它不变。
+
+【使用 RasterWaterMap】
+底图 Texture 必须启用 Read/Write，Texture 压缩建议关闭以保持颜色判定稳定。
+Source 引用完整底图 Texture2D，而不是军队 Sprite。
+Local Bounds 必须覆盖底图实际位置和大小。
+Bridges 的 Rect 使用 MapRoot 本地 XY 坐标：X/Y 是左下角，Width/Height 是尺寸。
+桥梁豁免应只覆盖真实桥，不要把整片河设置成桥。
+
+当前水域阈值写在 RasterWaterMap.IsWater 中。
+不同图片配色、标注、压缩和阴影可能导致误判；当前验证只针对这张图。
+如果图像水色不合适，推荐手工地形多边形，而不是认为任意蓝色都能可靠识别。
+
+【保持干净地图】
+道路资产 Show Roads：关闭。
+Setup.Show Committed Routes：关闭，隐藏已经提交路线的永久显示。
+Setup.Show Tactical Overlays：关闭，隐藏范围圈、状态和归属图形。
+Setup.Show Debug UI：关闭。
+临时画线预览仍显示，便于判断路线有效与否。
+地形区域不会在 Game 中自动铺额外颜色。
+
+【地图和军队不同显示图层】
+在 Sorting Layers 中建立 Map 和 Army，用于 Sprite/LineRenderer 的前后排序。
+军队 SpriteRenderer 使用 Army，背景使用 Map。
+如需由 Camera 的 Culling Mask 控制是否渲染地图，再建立不同的 GameObject Layer。
+Sorting Layer 和 GameObject Layer 不是同一个概念。
+运行背景由 RoadMapRuntime 创建；若要严格继承自定义 GameObject Layer 或自定义
+Sorting Layer，需要在创建背景处补赋值，或者自己用独立 SpriteRenderer 管理底图。
+自己摆底图 Sprite 时，清空道路资产 Background，避免运行时又生成第二张底图。
+隐藏背景显示不应关闭 MapRoot 的逻辑组件，否则道路/地形查询可能受影响。
+
+============================================================
+十一、如何配置缩放滑条、复位按钮和设置面板
+============================================================
+
+【基础 UI】
+创建 Canvas，Render Mode 使用 Screen Space - Overlay。
+添加 CanvasScaler，建议 Scale With Screen Size，参考分辨率 1280×720。
+Canvas 需要 GraphicRaycaster，场景需要 EventSystem 和 StandaloneInputModule。
+当前使用 UGUI 的 Text / Slider / Button，不是 TextMeshPro 字段。
+
+【左侧缩放滑条】
+创建 UI Slider，将 RectTransform 锚点设在左侧中部。
+Direction 选择 Bottom To Top。
+把 Slider 拖入 MapZoomController.Zoom Slider。
+值会自动设置为 0～1；滑条越靠上越放大。
+不要再手动绑定同一个 SetNormalizedZoom 到 On Value Changed，脚本会自动绑定。
+
+【复位按钮】
+创建 UI Button，拖入 MapZoomController.Reset Node。
+脚本自动绑定复位事件，不需要再重复添加 OnClick。
+复位只恢复缩放尺寸，不会把镜头位置移回地图中心。
+
+【初始缩放】
+Start At Middle 开启：启动时使用 (Minimum Size + Maximum Size)/2。
+关闭：启动时保留相机原始 Orthographic Size，再限制到合法范围。
+如果想中间值等于 5，可设 Minimum=2、Maximum=8。
+当前测试地图使用 3 和 25，以便初始画面展示大部分底图。
+
+【设置面板】
+GameSettingsController 挂 GameRoot。
+Pan → MapPanController。
+Settings Panel → 面板 GameObject。
+Pan Slider → 地图拖动灵敏度 Slider，建议 0.2～3。
+Planning Slider → 路线灵敏度 Slider，建议 0.25～2。
+Bgm Slider / Effects Slider → 音量 Slider，范围 0～1。
+
+SETTINGS Button 的 OnClick 手动绑定：GameRoot → GameSettingsController.TogglePanel。
+四个 Slider 的数值事件由脚本 Start 自动绑定，不要重复绑定。
+进入场景会读取 PlayerPrefs；所以 Inspector 中填的初值不一定覆盖已保存设置。
+目前没有“恢复默认设置”按钮，没有快捷键改绑和分辨率设置页。
+
+============================================================
+十二、如何添加 BGM 和音效
+============================================================
+
+【BGM】
+1. 将音乐文件导入 Assets。
+2. 选中 GameRoot/BGM 的 AudioSource。
+3. Audio Clip 指向音乐。
+4. Loop 开启，Spatial Blend=0，确保是全局 2D 音乐。
+5. 要进场景就播放，可开启 Play On Awake；或由自己的脚本调用 Play。
+6. GameSettingsController.Bgm Source 引用这个 AudioSource。
+
+【音效】
+1. 导入音效文件。
+2. 在 GameRoot/Effects 保留 AudioSource，Spatial Blend=0。
+3. GameSettingsController.Effect Sources 数组加入这个音源。
+4. 在需要播放的事件中调用 GameSettingsController.PlayEffect(音效Clip,位置)。
+   当前方法使用第一个可用的已绑定音源 PlayOneShot，能同时混合播放短音效。
+5. 没有事件触发器时，单纯给音源填一个 Clip 不会自动生成攻击或移动音效。
+
+当前没有提供 AudioListener。在 Main Camera 上添加一个 AudioListener，并确保
+场景只有一个启用的监听器，才能在正常运行时听到音频。
+当前音效按 2D 播放，传入位置不代表已经实现了距离衰减或空间声音。
+新增音源若没加入 Effect Sources，不会受这套音效音量控制。
+
+============================================================
+十三、比例尺与指北针如何挂载
+============================================================
+
+在 Canvas 或其 HUD 子物体上 Add Component → MapReferenceHUD。
+Map Camera → Main Camera。
+Scale Label → UGUI Text。
+Scale Bar → 一条横向 Image 的 RectTransform。
+Compass → 指北针图形/文字的 RectTransform。
+
+Scale Bar 建议 Pivot=(0,0.5)，让长度向右伸展。
+Meters Per World Unit 必须为正数。
+如果地图宽 36 世界单位，实际宽 18 公里，则填 18000/36=500。
+如果不知道实际地图跨度，现有比例尺只能用于测试显示。
+
+Map North Degrees 默认 0，表示地图上方为北。
+Preferred Pixels 为希望比例尺接近的 UI 长度，目前 140。
+脚本会选择易读距离，并根据相机尺寸改变长度和文字。
+当前相机只支持正交俯视地图，不是透视地图比例尺。
+
+============================================================
+十四、区域归属数据与恢复战术显示
+============================================================
+
+在 Ownership Map 资产中，每个 Region 包括：
+Name：区域名称。
+Polygon：多边形顶点。
+State：Unoccupied（未占领）或 Occupied（已占领）。
+Owner Id：A/B/C 等玩家标识。
+Color：区域显示颜色。
+
+选中 OwnershipMapRuntime 可以用编辑器工具画区域。
+这些归属只是开始前手工填写的状态。
+军队走进区域，不会自动变为占领；没有占领进度、争夺或积分。
+
+要试验旧范围圈显示：
+在 GameRoot 的 Setup 开启 Show Tactical Overlays，再 Play，按 3 切层。
+各军队 ArmyTacticalInfo 的 Vision Radius 和 Attack Radius 可调整圈大小。
+当前显示不会区分哪个玩家能看见哪个敌人，因此不能当战争迷雾使用。
+
+============================================================
+十五、耦合关系与修改时应注意什么
+============================================================
+
+当前主要依赖方向：
+
+数据资产 → 地图运行组件 / 军队组件
+鼠标模式 + 选择 + 地图查询 → 行军控制器 → ArmyRouteMotor
+相机 → 平移 / 缩放 / 比例尺
+军队信息 + 模式 → 战术显示
+RoadMarchSceneSetup → 连接以上组件
+
+数据与对象分开，可以换地图或单位参数而不重写移动算法。
+模式 1/2 共用执行器，避免两个组件同时修改位置。
+RoadMarchSceneSetup 依赖较多，它承担组装职责，不应继续塞入全部战斗和网络逻辑。
+GameSettingsController 当前要求输入控制器和自己在同一个 GameRoot。
+自由行军原始速度读取 ArmyRoadMover.Speed，这是当前明确的依赖。
+道路与自由道路走廊暂时需要你保持数据同步。
+
+以后联网前应增加命令层、稳定单位 ID、玩家权限和按玩家保存的情报。
+不要将联网、攻击、维修和隐藏图标全部写在 ArmyRoadMover.Update 里面。
+当前类型资产可共享；未来“当前血量、当前目标、当前维修进度”必须是每个单位的独立状态。
+不能把每个棋子的当前血量写进共享 ArmyDefinition。
+
+============================================================
+十六、尚未完成的功能
+============================================================
+
+【玩家与回合】
+没有玩家 A/B 的操作权限检查。
+没有切换玩家视角、轮流下令、统一执行或回合结束按钮。
+没有同一台电脑交接玩家时的信息遮挡和选择状态清理。
+Owner Id 目前不影响选择和移动。
+
+【侦察与情报】
+没有真实观察器或侦察结算。
+没有战争迷雾、最后已知位置、地形视线遮挡和隐藏单位。
+没有“可见但类型未知”的敌军棋子。
+没有按玩家保存的识别记录。
+没有首次交战后揭露类型、离开视野后保留类型记忆的机制。
+没有城市维修后重新隐藏敌军类型的机制。
+
+【战斗】
+没有当前/最大血量、攻击力、防御力和伤害公式的运行系统。
+没有攻击命令、攻击冷却、目标追击、伤害结算、死亡或俘虏。
+没有实际射程判定、首次开火事件和交战识别。
+没有撤退、士气、工事、朝向或包围修正。
+攻击圈的存在不代表攻击已经实现。
+
+【城市与资源】
+没有城市对象、驻扎、维修、维修资源消耗和物资库存。
+没有矿洞、运输单位、运输路线、兵工厂与生产队列。
+没有资金、玩家军队统计、城市统计等完整数据面板。
+没有围城资源耗尽、城市抵抗值或投降。
+按最新策划，常态部队补给消耗不是当前规则；资源主要用于维修、生产和运输。
+旧大纲中的补给线系统没有实现，也不应当误认为是当前必须补上的功能。
+
+【操作与 UI】
+没有多军队框选、编队、队形和多个棋子统一下令。
+没有右上小地图与点击小地图移动镜头。
+没有完整军团底部统计栏和右侧单位详情面板。
+没有城市交互和建造 UI。
+没有完整中文本地化、统一美术、暂停/变速控制、胜利界面或教学关卡。
+没有默认设置复位按钮、按键重绑、显示与画质设置。
+规划灵敏度目前是虚拟路线端点缩放，没有独立规划光标。
+
+【地图和机动完善】
+没有单位碰撞、道路拥堵、会车、支援距离和自动编队跟随。
+没有避障绕行；不合法路线主要由玩家重画。
+没有任意图片自动道路识别。
+没有道路图编辑后自动同步模式 2 地形走廊。
+没有地图/道路在运行中修改后全部系统自动重新加载的完整流程。
+当前地图以编辑器制作后运行测试为主要使用方式。
+
+【网络和游戏整体】
+没有联网同步、服务器权威结算、断线重连和反情报泄露。
+没有 AI 对手、存档读档、匹配、Steam 接入和完整游戏发布配置。
+没有 20 分钟计时、计分、胜利条件和完整关卡循环。
+
+============================================================
+十七、常见问题排查
+============================================================
+
+1. “请指定道路地图组件” / Assign Road Map
+   Setup.Road Map 要拖 MapRoot 的组件。
+   再检查 RoadMapRuntime.Definition 是否有道路资产。
+
+2. “请指定场景中的军团” / Assign your scene armies
+   Scene Armies 数量不能为 0，元素必须是挂 ArmyRoadMover 的场景棋子。
+   不能拖 Infantry.asset 代替军队对象。
+
+3. “An army or its Definition is missing”
+   检查 Scene Armies 是否有空项，每个 ArmyRoadMover.Definition 是否已绑定。
+
+4. “Draw at least one road” / Map has no roads
+   Nodes 只有点还不够，Connections 至少需要一条有效连接。
+   连接索引必须在 Nodes 范围内；不要连接同一点或重复坐标。
+
+5. 相机启动后尺寸又改变
+   MapZoomController.Start At Middle 会覆盖初始 Orthographic Size。
+   修改上下限，或关闭 Start At Middle。
+
+6. 按键没反应
+   点击 Game 窗口获得焦点；确认不是在 Scene 编辑视图里测试。
+   Console 编译错误必须先解决。
+   当前代码使用旧 Input API，Player Settings 的输入处理需要支持 Input Manager。
+
+7. 路线总是变红
+   检查是否离录入道路太远、道路是否真正共用路口节点、是否跨水。
+   模式 2 检查 Allowed Terrain 和 Bounds。
+   水域像素判断和地形多边形是两层校验，桥梁需要对应豁免。
+
+8. 换了贴图资产但棋子没变化
+   直接修改场景军队 SpriteRenderer.Sprite。
+   当前不自动把 ArmyDefinition.Icon 更新到已有对象。
+
+9. 地图看起来有两层
+   你手动摆了底图，又在 RoadMapDefinition.Background 填了同一张图。
+   选择一种背景显示方式，不要同时重复。
+
+10. 看见旧示例地图或旧军队
+    检查场景是否还有另一套启用的 Setup，当前组件是否引用旧 Map01 资产。
+    当前参考场景应引用 ReferenceRoadMap / ReferenceTerrain。
+    Project 里存在旧资产本身不会自动显示在 Game 中。
+
+11. 设置滑条不能拖 / 点击按钮穿透到地图
+    检查 EventSystem、GraphicRaycaster、UI 图形 Raycast Target 和 Slider Handle Rect。
+    单纯一个 Image 不等于可拖动 Slider。
+
+12. 音量调了但没声音
+    当前没有自带音频素材；确认 Clip、Play 状态、AudioSource 和 AudioListener。
+    设置控制音量，不会自动触发所有音效事件。
+
+13. 按 3 没有圈
+    当前 Show Tactical Overlays 默认关闭。
+    开启只能测试旧显示，不会产生侦察或攻击逻辑。
+
+14. 隐藏敌人时能不能关闭整个对象
+    未来不要通过关闭敌军整个 GameObject 实现情报隐藏，会同时停掉移动等逻辑。
+    应由独立显示组件隐藏 Sprite、标签、路线和相关 UI。
+
+============================================================
+十八、已经做过的验证与建议开发顺序
+============================================================
+
+当前工程已用 Unity 2022.3.62f3c1 编译并进入 Play 检查：
+场景初始化、军队初始化、实际道路移动。
+跨主河拒绝、两处主桥可通行。
+自由行军无效命令拒绝、道路与普通地面速度差异。
+缩放滑条同步、中间值复位。
+设置组件、音源引用和 BGM 音量控制。
+最后录入的道路段通过当前水域判定检查。
+
+这些检查不等于全图所有操作已经经过长时间人工试玩。
+没有验证不存在的战斗、回合、城市和联网系统。
+预览图是当前配置的场景渲染，不是完整成品 UI。
+
+建议接下来的实现顺序：
+1. 稳定单位 ID、玩家身份、单位所有权与己方操作权限。
+2. 当前玩家视角、观察范围和隐藏/未知/已识别三个显示状态。
+3. 按玩家保存识别记录。
+4. 血量、攻击、防御、射程、首次有效交战识别。
+5. 明确实时或轮流下令规则，再做时间推进与回合执行。
+6. 城市、维修、库存和维修后的识别重置。
+7. 运输、矿洞和生产。
+8. 小地图、统计栏、单位详情等正式 UI。
+9. 权威命令与网络同步。
+
+说明书结束。

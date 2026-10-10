@@ -1,0 +1,52 @@
+﻿using System;
+using System.IO;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+namespace CampaignDemo.Editor
+{
+    public static class UISeparationVerification
+    {
+        static bool done;static int checks;static double start;
+        [InitializeOnLoadMethod]static void Resume(){if(SessionState.GetBool("UISeparateVerify",false)){start=EditorApplication.timeSinceStartup;EditorApplication.update+=Update;Application.logMessageReceived+=Log;}}
+        public static void Run(){EditorSceneManager.OpenScene("Assets/Scenes/Battle01.unity");SessionState.SetBool("UISeparateVerify",true);start=EditorApplication.timeSinceStartup;EditorApplication.update+=Update;Application.logMessageReceived+=Log;EditorApplication.EnterPlaymode();}
+        static void Log(string m,string trace,LogType t){if(t==LogType.Error||t==LogType.Exception){File.WriteAllText("ui-separation-error.txt",m+"\n"+trace);SessionState.SetBool("UISeparateVerify",false);EditorApplication.Exit(1);}}
+        static void Check(bool condition,string label){checks++;if(!condition)throw new Exception("UI separation verification: "+label);Debug.Log("UI_SEPARATION_CHECK "+label);}
+        static BattleUnit Unit(Transform root,string id,string owner,Vector3 position,ArmyCombatDefinition combat,ArmyDefinition movement,RoadNetwork graph)
+        {var g=new GameObject(id);g.transform.SetParent(root);g.transform.position=position;var road=g.AddComponent<ArmyRoadMover>();road.definition=movement;road.InitializeAt(graph,new RoadPoint(position.x,position.y),RoadRouteView.Create(root,id+" route",.05f,3,Color.cyan));var free=g.AddComponent<ArmyFreeMarchMover>();free.Initialize(road.Motor);var u=g.AddComponent<BattleUnit>();u.unitId=id;u.ownerId=owner;u.combatDefinition=combat;return u;}
+        static void Update(){if(done)return;if(EditorApplication.timeSinceStartup-start>100){Debug.LogError("UI separation timeout");return;}if(!EditorApplication.isPlaying||Time.time<.7f)return;done=true;try{Tests();Debug.Log("UI_SEPARATION_PASS: "+checks+" assertions");File.WriteAllText("ui-separation-result.txt",checks+" assertions passed");SessionState.SetBool("UISeparateVerify",false);EditorApplication.Exit(0);}catch(Exception e){Debug.LogException(e);}}
+        static void Tests()
+        {
+            var live=UnityEngine.Object.FindObjectOfType<BattleWorld>();var hud=UnityEngine.Object.FindObjectOfType<BattleHUD>();Check(live.Initialized&&hud.information!=null&&hud.actions!=null,"existing scene UI bindings initialized");
+            var root=new GameObject("Headless information and command tests");var setup=root.AddComponent<RoadMarchSceneSetup>();setup.enabled=false;setup.modes=root.AddComponent<MouseModeStateMachine>();setup.modes.SetMode(MouseCommandMode.Interaction);
+            var roadData=ScriptableObject.CreateInstance<RoadMapDefinition>();roadData.nodes=new[]{new Vector2(100,100),new Vector2(102,100),new Vector2(102,102)};roadData.connections=new[]{new RoadMapDefinition.Connection{a=0,b=1},new RoadMapDefinition.Connection{a=1,b=2}};roadData.showRoads=false;var roadMap=root.AddComponent<RoadMapRuntime>();roadMap.definition=roadData;roadMap.Initialize();setup.roadMap=roadMap;
+            var terrainData=ScriptableObject.CreateInstance<FreeMarchMapDefinition>();terrainData.bounds=new Rect(98,98,8,8);var map=root.AddComponent<FreeMarchMapRuntime>();map.definition=terrainData;setup.freeMarchMap=map;
+            var combat=ScriptableObject.CreateInstance<ArmyCombatDefinition>();var move=ScriptableObject.CreateInstance<ArmyDefinition>();move.speed=2;var a=Unit(root.transform,"A1","A",new Vector3(100,100),combat,move,roadMap.Network);var b=Unit(root.transform,"B1","B",new Vector3(102,100),combat,move,roadMap.Network);
+            setup.sceneArmies=new[]{a.GetComponent<ArmyRoadMover>(),b.GetComponent<ArmyRoadMover>()};
+            var cityA=root.gameObject.AddComponent<RecoveryPoint>();cityA.pointId="cityA";cityA.ownerId="A";cityA.resourceStock=1000;var cityg=new GameObject("city B");cityg.transform.SetParent(root.transform);var cityB=cityg.AddComponent<RecoveryPoint>();cityB.pointId="cityB";cityB.ownerId="B";cityB.resourceStock=2000;
+            var world=root.AddComponent<BattleWorld>();world.enabled=false;world.setup=setup;world.currentPlayer="A";world.units=new[]{a,b};world.points=new[]{cityA,cityB};world.Initialize();
+            var log=root.AddComponent<LogisticsWorld>();log.enabled=false;log.world=world;log.truckPrefab=live.GetComponent<LogisticsWorld>().truckPrefab;
+            var source=root.AddComponent<BattleInformationSource>();source.world=world;source.logistics=log;var commands=root.AddComponent<BattleCommandService>();commands.world=world;commands.logistics=log;
+            var unreadyObject=new GameObject("uninitialized query");var unready=unreadyObject.AddComponent<BattleWorld>();unready.enabled=false;source.world=unready;Check(source.GetOverview("A")==null,"uninitialized world query returns no data");source.world=world;UnityEngine.Object.DestroyImmediate(unreadyObject);
+            Check(root.GetComponentInChildren<Canvas>()==null,"information and commands require no Canvas or UI");
+            var overview=source.GetOverview("A");Check(overview.cityResources==1000&&overview.enemyCityCount==1,"own stock and deliberate public enemy city count");overview.cityResources=99999;Check(source.GetOverview("A").cityResources==1000,"UI snapshot mutation cannot change game resources");
+            var unknown=source.GetArmy("A","B1");Check(unknown!=null&&!unknown.known&&unknown.unitType==null&&unknown.personnel==null&&unknown.visionRadius==null&&unknown.state==null,"unknown enemy details filtered at source");world.Intel.Identify("A",b);var known=source.GetArmy("A","B1");Check(known.known&&known.personnelPercent.HasValue&&!known.capacity.HasValue&&known.designation==null&&!known.attackRadius.HasValue,"known enemy exposes public information only");b.transform.position=new Vector3(110,110);Check(source.GetArmy("A","B1")==null,"unseen enemy position not returned");b.transform.position=new Vector3(102,100);Check(!source.GetFacility("A","cityB").stock.HasValue,"enemy inventory filtered");Check(source.GetOverview("invalid")==null,"invalid viewer cannot query data");
+            setup.modes.SetMode(MouseCommandMode.RoadMarch);Check(source.GetArmy("A","A1").personnel.HasValue&&source.GetOverview("A")!=null,"data queries independent of mouse mode");setup.modes.SetMode(MouseCommandMode.Interaction);
+            Check(!commands.Submit(new BattleCommand{playerId="A",unitId="B1",kind=BattleCommandKind.RoadDestination,destination=new Vector3(102,102)}).accepted,"cannot command another player army");
+            var result=commands.Submit(new BattleCommand{playerId="B",unitId="B1",kind=BattleCommandKind.RoadDestination,destination=new Vector3(102,102)});Check(result.accepted&&b.Motor.IsMoving&&world.currentPlayer=="A"&&setup.modes.CurrentMode==MouseCommandMode.Interaction,"AI B can move while camera shows A and UI is mode3");b.Motor.Stop();
+            Check(source.GetOwnRoute("A","B1")==null&&source.GetOwnRoute("B","B1")!=null,"route information is private and independent of UI");
+            Check(!commands.Submit(new BattleCommand{playerId="B",unitId="B1",kind=BattleCommandKind.RoadRoute,route=new List<RoadPoint>{new RoadPoint(102,100),new RoadPoint(101,101)}}).accepted,"road route cannot cut across off-road ground");
+            b.Engage();Check(!commands.Submit(new BattleCommand{playerId="B",unitId="B1",kind=BattleCommandKind.RoadDestination,destination=new Vector3(102,102)}).accepted,"AI movement uses same combat lock");Check(commands.Submit(new BattleCommand{playerId="B",unitId="B1",kind=BattleCommandKind.Escape}).accepted,"AI escape uses normal state rules");b.ReleaseCombat();b.Initialize();
+            b.GetComponent<ArmyFreeMarchMover>().BindMap(map);Check(commands.Submit(new BattleCommand{playerId="B",unitId="B1",kind=BattleCommandKind.FreeDestination,destination=new Vector3(103,101)}).accepted,"AI free destination uses same terrain validation");b.Motor.Stop();terrainData.regions=new[]{new FreeMarchMapDefinition.Region{terrain=TerrainKind.Blocked,polygon=new[]{new Vector2(102.2f,99),new Vector2(102.4f,99),new Vector2(102.4f,103),new Vector2(102.2f,103)}}};terrainData.MarkDirty();Check(!commands.Submit(new BattleCommand{playerId="B",unitId="B1",kind=BattleCommandKind.FreeDestination,destination=new Vector3(103,101)}).accepted,"AI cannot cross blocked terrain");
+            setup.modes.SetMode(MouseCommandMode.RoadMarch);var ui=root.AddComponent<BattleUIActions>();ui.commands=commands;Check(!ui.Execute(new BattleCommand{unitId="A1",kind=BattleCommandKind.Escape}).accepted,"UI management mode gate lives in UI adapter");Check(commands.Submit(new BattleCommand{playerId="B",pointId="cityB",kind=BattleCommandKind.BuildFactory}).accepted,"AI construction does not depend on UI mode or active player");Check(!commands.Submit(new BattleCommand{playerId="A",pointId="cityB",kind=BattleCommandKind.BuildTruck}).accepted,"construction rejects hostile city");
+            var t=b.gameObject.AddComponent<TransportTruck>();t.definition=log.truckPrefab.GetComponent<TransportTruck>().definition;Check(source.GetTransport("A","B1")==null&&source.GetTransport("B","B1")!=null,"transport cargo is private information");
+            var c=root.AddComponent<ResourceCollector>();c.ownerId="B";c.Initialize();log.collectors.Add(c);Check(source.GetCollector("A",c.collectorId)==null,"unseen enemy collector not exposed");Check(source.GetCollector("B",c.collectorId).stock.HasValue,"own collector numeric information available");
+            int births=0;world.UnitRegistered+=unit=>births++;log.Tick(log.factoryBuildSeconds+.1f);Check(cityB.hasFactory,"headless factory construction completes");Check(commands.Submit(new BattleCommand{playerId="B",pointId="cityB",kind=BattleCommandKind.BuildTruck,echelon=ArmyEchelon.Platoon}).accepted,"AI can manufacture through the shared command interface");log.Tick(log.truckPrefab.GetComponent<TransportTruck>().definition.buildSeconds+.1f);Check(world.units.Length==3&&births==1&&root.GetComponentInChildren<Canvas>()==null,"unit registration emits event without finding or creating UI");
+            UnityEngine.Object.DestroyImmediate(root);UnityEngine.Object.DestroyImmediate(roadData);UnityEngine.Object.DestroyImmediate(terrainData);UnityEngine.Object.DestroyImmediate(combat);UnityEngine.Object.DestroyImmediate(move);
+        }
+    }
+}
+
+
+

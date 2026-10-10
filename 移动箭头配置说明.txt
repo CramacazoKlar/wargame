@@ -1,0 +1,12 @@
+﻿
+移动箭头显示（2026年10月8日）
+已确认的军队移动命令使用空心军事地图箭头，不再显示原中心路线线条。
+箭头轮廓沿原移动折线弯折，头部指向最终目的地。仅改变显示，不修改寻路、速度或实际移动轨迹。
+随着单位前进，显示起点变成当前单位位置，已走部分消失。原始完整命令路线仍保留供其他功能读取。
+默认只显示当前选中、当前玩家所属、位于地图上的军队箭头。未选中或敌方的路线不会显示；选建筑或空白会清除军队选择。
+新路线绘制时仍使用原合法/非法线条预览，确认后变成空心箭头。画新线期间隐藏原命令箭头。
+停止、受阻、到达终点或死亡时清除箭头，不恢复逃跑按钮。
+RoadMarchSettings新增Arrow Shaft Width、Arrow Head Width、Arrow Head Length、Arrow Stroke Width、Movement Arrow Color。
+GameRoot/RoadMarchSceneSetup.Show Committed Routes本次打开；关闭它会连箭头一起隐藏。
+所用为北约式军事地图风格的空心移动箭头，不宣称实现完整正式符号标准。
+2026-10-09更新：绘制预览与确认行军统一使用空心箭头；以map.army推进轴风格为参考，双侧轮廓、尾部开口、尖头、不填色。Arrow Open Tail可关闭开放尾部；接入Minimum Arrow Shaft/Head/Head Length/Stroke Pixels，避免拉远后看成普通细线。原来的非法路线红色、选择显示规则、路线缩短和停车清除保留。

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b3fc26fd0aea3f45acbf5af719e1179, type: 3}
+  m_Name: TruckFreeMarch
+  m_EditorClassIdentifier: 
+  mode2ReductionPercent: 0
+  terrainReductions:
+  - terrain: 0
+    reductionPercent: 70
+  - terrain: 2
+    reductionPercent: 70
+  - terrain: 6
+    reductionPercent: 19.999998
+  - terrain: 3
+    reductionPercent: 100
+  - terrain: 1
+    reductionPercent: 0
+  allowedTerrain: 71

@@ -1,0 +1,86 @@
+﻿战役兵棋——可替换攻击特效接口
+版本：2026年10月6日
+项目：C:\Users\ZWQ\Desktop\wargame
+
+一、这次增加什么
+普通部队攻击、攻击资源采集器、炮兵发射、炮弹落地和地图外支援，统一发出显示通知。
+伤害、射程、冷却和视野判断仍由原战斗规则负责。
+特效不参与伤害，不需要等待动画完成才扣血。关闭特效或显示回调出错，不会停止原伤害结算。
+炮兵落点的旧硬编码橙圈已经接到统一显示层，避免以后换特效还要改炮击规则。
+目前使用简单线条和落点圈作为可关闭占位，不是正式美术方案。
+
+二、在哪里配置
+选GameRoot：
+Combat Effect Presenter：
+  World → 同对象BattleWorld。
+  Effect Player → 同对象PrefabCombatEffectPlayer，或自己实现ICombatEffectPlayer的组件。
+  Default Profile → 普通默认效果配置。
+  Profiles → 按UnitRole覆写，例如坦克使用独立配置。
+  Artillery Profile → 炮兵发射/落地配置。
+  Support Profile → 地图外炮击支援配置。
+
+Prefab Combat Effect Player：
+  Presenter → 同对象CombatEffectPresenter。
+  Max Active Objects → 同时存活的特效对象上限。达到上限先清掉旧视觉对象，不影响任何战斗单位。
+
+当前数据位于Assets/Game/Data/Effects：
+DefaultAttackEffects、TankAttackEffects、ArtilleryEffects、SupportEffects。
+
+三、以后替换美术，优先只改资产
+Project右键 → Create → Campaign Demo → Combat Effect Profile。
+Fire Prefab：开火位置的效果，例如枪口火花。
+Projectile Prefab：开火位置到目标位置之间的视觉物，例如子弹或示意弹道。
+Impact Prefab：命中位置或炮击区域中心的效果，例如火花、尘土、爆炸。
+Direct Attack Interval：普通持续交战的视觉播放间隔，完全不改变伤害频率。
+Lifetime：效果对象显示多久后清理，应覆盖你的粒子/动画完整长度。
+Projectile Travel Seconds：默认播放器的线性移动展示时间，是视觉参数，不改变炮弹真实延迟或伤害时刻。
+Prefab Scale：效果预制体整体缩放。
+Scale Impact By Blast Radius：是否将区域爆炸Prefab的缩放再乘炮击半径，需按美术Prefab原始尺寸校准。
+Show Placeholder：Prefab槽为空时是否使用简单线条/圈；正式素材齐备后可关。
+Color、Line Width、Direct Impact Radius：只用于占位图形。
+
+准备包含ParticleSystem、Sprite或Animator的效果Prefab，放到自己的Effects目录，拖到相应槽位即可。
+Prefab无需绑定BattleWorld，也不要挂BattleUnit或移动战斗脚本。
+默认播放器会添加/配置CombatEffectInstance管理生命周期和可选线性移动。
+普通攻击命中通知和伤害在同一次规则结算发生；弹道是表现，不能把此参数当额外攻击延迟。
+炮兵只在发射时播放开火/弹道，真实延迟结束后再播放爆炸，不会在发射时提前播放爆炸。
+默认播放器不显示地图外支援的发射源，因为没有实体炮兵。
+
+四、以后换完整特效系统
+定义一个MonoBehaviour实现ICombatEffectPlayer：
+  void Play(CombatEffectCue cue)
+  void Clear()
+挂到GameRoot，再将CombatEffectPresenter.Effect Player拖成这个新组件。
+Clear用于切换玩家、关闭显示或切换战场时清理旧效果。
+可以在这个实现中使用对象池、动画系统、音效、曲线弹道或其他美术方案，无需修改伤害公式。
+
+CombatEffectCue提供：
+Stage：DirectAttack、ArtilleryLaunch、ArtilleryImpact、SupportLaunch、SupportImpact。
+Has Source / Has Target：是否允许当前查看者知道两端位置。
+Has Source Role / Source Role：能否知道发射者兵种，以及对应角色。
+Source Position / Target Position：允许展示的位置快照。
+Radius：区域攻击范围，普通攻击为零。
+
+隐藏发射者的坐标会被清成零，Has Source为false；此时不能用零坐标画出一条假弹道。
+炮击落地不会暴露远处炮兵发射位置。未知兵种的普通攻击使用通用效果配置。
+自己的支援提交通知可供自定义系统使用；默认播放器只显示其可见落地效果。
+不能把原始CombatEffectEvent直接当未来客户端收到的数据；联网时也必须先过滤各玩家可知信息。
+
+五、开发接口关系
+BattleWorld.CombatEffectOccurred：统一通知事件。
+BattleWorld.NotifyCombatEffect：发布一条通知；订阅者异常被隔离。
+CombatEffectEvent：规则侧快照，不包含需要显示层修改的单位对象引用。
+CombatEffectPresenter：按当前玩家视野过滤、按显示间隔节流，再调用播放器。
+ICombatEffectPlayer：可替换的显示接口。
+PrefabCombatEffectPlayer：当前基于Prefab及占位图形的默认实现。
+CombatEffectInstance：效果实例生命周期和默认弹道移动。
+CombatEffectProfile：可独立修改的视觉配置资产。
+
+特效关闭方法：关闭CombatEffectPresenter或PrefabCombatEffectPlayer组件。
+只关闭占位而保留真实Prefab：取消各配置中的Show Placeholder。
+普通效果在模式1、2、3都可显示，不局限于模式3；战斗通知本身也不依赖鼠标操作。
+
+六、验证范围
+检查普通正伤害与零伤害通知、显示回调故障隔离、迷雾及森林隐藏、未知类型、炮击延迟、支援阶段、普通显示节流和玩家视角切换。
+实际运行验证Prefab播放、占位关闭、对象寿命、对象数量上限及关闭播放器。
+正式特效外观、动画节奏和音效仍留待美术方案确定后配置。

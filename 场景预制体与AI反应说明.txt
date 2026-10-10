@@ -1,0 +1,30 @@
+场景预制体与AI反应说明
+2026-10-10
+
+Battle01中的8支军队、3座城市和2个资源区均已关联预制体。
+军队使用Assets/Game/UnitLibrary/Prefabs下的原兵种预制体。
+原先独立的城市与资源区保持原位置、名称、库存、归属和引用，保存为各自的场景对象预制体。
+路径：Assets/Game/Prefabs/SceneObjects。
+例如City_West recovery、City_East recovery、City_Neutral recovery。
+这些预制体都在桌面wargame项目中，不是只存在于验证项目。
+地图、摄像机、UI和管理器仍是场景基础设施，不当作军队或建筑预制体转换。
+
+城市：场景中的三座城市以及Friendly/City、Enemy/City默认预制体，Scale X/Y/Z均为0.5。
+修改单座城市：停止运行，在Hierarchy选中它，修改Transform Scale并保存场景。
+修改它对应的默认预制体：点击Inspector中的Open打开对应城市资产，修改Scale并保存。
+城市代码不覆盖Scale；City Sorting Order仍负责显示优先级。
+
+AI为什么开始看起来不动：
+B方使用基础守备配置，禁止主动追击和推进。
+当前步兵射程为1.05，初始两侧部队间距约2.4，因此即使互相看见，也未达到交战距离。
+选择A方步兵，在状态2将它移近B方即可观察反应；进入射程后经过配置的反应时间，AI状态转为交战。
+普通伤害由既有战斗系统执行，不要求AI反复下达射击按钮命令。
+切到B时AI停止下令，切回A时恢复；切换不暂停正常战斗模拟。
+没有擅自把基础AI改成主动进攻型。
+
+运行时在Hierarchy选中红方军队，看AIUnitOrder：
+State：Holding守备、Reacting等待反应、Engaging交战。
+Decision Reason：最近可见敌军距离、射程或当前交战原因。
+Last Command Reason：命令被拒绝时的理由。
+
+验证：编辑状态确认全部13个游戏实体的预制体连接；实际运行确认城市0.5缩放、初始守备、进入射程后的AI交战与伤害、离开后的恢复守备，以及A/B切换。
