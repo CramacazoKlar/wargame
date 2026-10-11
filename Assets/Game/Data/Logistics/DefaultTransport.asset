@@ -22,5 +22,6 @@ MonoBehaviour:
   - 72900
   - 218700
   buildCost: 100
+  buildCostPerEchelon: 3.3
   buildSeconds: 5
   loadingRadius: 0.6

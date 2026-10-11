@@ -47,7 +47,7 @@ namespace CampaignDemo
 
 }
             }
-            for(int i=jobs.Count-1;i>=0;i--){var j=jobs[i];if(!j.unit.Working||!j.unit.OnMap||j.unit.State!=ArmyBattleState.Deployed||Vector2.Distance(j.unit.transform.position,j.position)>engineering.interactionRadius+(j.fort==null?0:j.fort.radius)||(!j.build&&(j.fort==null||j.fort.Destroyed))){Finish(j);jobs.RemoveAt(i);continue;}
+            for(int i=jobs.Count-1;i>=0;i--){var j=jobs[i];if(!j.unit.Working||!j.unit.OnMap||j.unit.State!=ArmyBattleState.Deployed||Vector2.Distance(j.unit.transform.position,j.position)>UnitRanges.Interaction(j.unit)||(!j.build&&(j.fort==null||j.fort.Destroyed))){Finish(j);jobs.RemoveAt(i);continue;}
                 j.remaining-=dt;if(j.remaining>0)continue;
                 if(j.build&&CanBuildAt(j.unit,j.position))CreateFortification(j.position,j.unit.ownerId,j.fortLevel);else if(!j.build)j.fort.Demolish();Finish(j);jobs.RemoveAt(i);
             }
@@ -65,19 +65,19 @@ namespace CampaignDemo
             foreach(var other in world.units)if(other!=null&&other.OnMap&&Vector2.Distance(other.transform.position,p)<engineering.fortificationRadius+.05f)return false;
             return true;
         }
-        public bool CanBuildPreview(BattleUnit u,Vector3 p){return CanWork(u)&&u.combatDefinition.role==UnitRole.Engineer&&CombinedArmsWorld.Finite(p)&&Vector2.Distance(u.transform.position,p)<=engineering.interactionRadius&&CanBuildAt(u,p);}
+        public bool CanBuildPreview(BattleUnit u,Vector3 p){return CanWork(u)&&u.combatDefinition.role==UnitRole.Engineer&&CombinedArmsWorld.Finite(p)&&Vector2.Distance(u.transform.position,p)<=UnitRanges.Interaction(u)&&CanBuildAt(u,p);}
         public CommandResult Build(BattleUnit u,Vector3 p)
         {
             if(!CanWork(u)||u.combatDefinition.role!=UnitRole.Engineer)return CommandResult.No("只有空闲工兵可以修建工事");
             if(!Finite(p))return CommandResult.No("位置无效");p.z=0;
-            if(Vector2.Distance(u.transform.position,p)>engineering.interactionRadius||!CanBuildAt(u,p))return CommandResult.No("位置太远、不可通行或已被占用");
+            if(Vector2.Distance(u.transform.position,p)>UnitRanges.Interaction(u)||!CanBuildAt(u,p))return CommandResult.No("位置太远、不可通行或已被占用");
             Begin(new Job{unit=u,position=p,remaining=Mathf.Max(.1f,engineering.buildSeconds),build=true,fortLevel=u.GetComponent<CampaignUnit>()==null?0:u.GetComponent<CampaignUnit>().fortBuildLevel});return CommandResult.Yes();
         }
         public CommandResult Dismantle(BattleUnit u,Vector3 p)
         {
             if(!CanWork(u)||!Finite(p))return CommandResult.No("该部队当前不能拆除");
-            Fortification nearest=null;float limit=engineering.interactionRadius;
-            foreach(var f in fortifications)if(f!=null&&!f.Destroyed&&(!world.fogEnabled||f.ownerId==u.ownerId||world.VisibleAt(u.ownerId,f.transform.position))&&Vector2.Distance(f.transform.position,p)<=f.radius+.15f&&Vector2.Distance(u.transform.position,f.transform.position)<=limit+f.radius){nearest=f;break;}
+            Fortification nearest=null;float limit=UnitRanges.Interaction(u);
+            foreach(var f in fortifications)if(f!=null&&!f.Destroyed&&(!world.fogEnabled||f.ownerId==u.ownerId||world.VisibleAt(u.ownerId,f.transform.position))&&Vector2.Distance(f.transform.position,p)<=f.radius+.15f&&Vector2.Distance(u.transform.position,f.transform.position)<=limit){nearest=f;break;}
             if(nearest==null)return CommandResult.No("附近没有可拆除工事");
             float duration=nearest.dismantleSeconds*(u.combatDefinition.role==UnitRole.Engineer?engineering.engineerDismantleMultiplier:1);
             Begin(new Job{unit=u,fort=nearest,position=nearest.transform.position,remaining=Mathf.Max(.1f,duration)});return CommandResult.Yes();

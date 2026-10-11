@@ -28,13 +28,14 @@ namespace CampaignDemo
     {
         public static void Ensure(BattleWorld world){if(world==null)return;var commands=world.GetComponent<BattleCommandService>();if(commands==null)commands=world.gameObject.AddComponent<BattleCommandService>();commands.world=world;commands.logistics=world.GetComponent<LogisticsWorld>();var info=world.GetComponent<BattleInformationSource>();if(info==null)info=world.gameObject.AddComponent<BattleInformationSource>();info.world=world;info.logistics=commands.logistics;}
     }
-    public enum BattleCommandKind { RoadRoute,FreeRoute,RoadDestination,FreeDestination,Escape,EnterPoint,ToggleRepair,ExitPoint,ToggleForestHide,SetForestAttack,BuildFactory,BuildTruck,BuildCollector,SetTransport,SaveTransportRoute,ArtilleryFire,ArtillerySupport,BoardCarrier,UnloadCarrier,BuildFortification,DismantleFortification,CancelEngineering,StopMovement,SetAbsoluteSpeed,ToggleArtilleryDeployment,DeployResourceCollector,BuildResourceDepot,RemoveResourceDepot,LoadResources,UnloadResources,AttackFortification,ToggleFortRemoval,DismantleFortSection }
+    public enum BattleCommandKind { RoadRoute,FreeRoute,RoadDestination,FreeDestination,Escape,EnterPoint,ToggleRepair,ExitPoint,ToggleForestHide,SetForestAttack,BuildFactory,BuildTruck,BuildCollector,SetTransport,SaveTransportRoute,ArtilleryFire,ArtillerySupport,BoardCarrier,UnloadCarrier,BuildFortification,DismantleFortification,CancelEngineering,StopMovement,SetAbsoluteSpeed,ToggleArtilleryDeployment,DeployResourceCollector,BuildResourceDepot,RemoveResourceDepot,LoadResources,UnloadResources,AttackFortification,ToggleFortRemoval,DismantleFortSection,BuildInfantry,CancelCityProduction }
     public sealed class BattleCommand
     {
+        public UnitRole productionRole=UnitRole.Infantry;public int count=1;public string productionJobId;
         public int fortId;public string targetUnitId,depotId;public float amount;public List<Vector3> fortLine;
         public string playerId,unitId,pointId,siteId,collectorId,sourceCityId,destinationCityId;
         public BattleCommandKind kind;public Vector3 destination;public List<RoadPoint> route;
-        public bool enabled,preserveTransportAutomation;public ArmyEchelon echelon=ArmyEchelon.Company;
+        public bool enabled,preserveTransportAutomation,automatedProduction;public ArmyEchelon echelon=ArmyEchelon.Company;
     }
     public struct CommandResult
     {
@@ -56,6 +57,8 @@ namespace CampaignDemo
             if(c==null||world==null||!world.Initialized||Array.IndexOf(world.players,c.playerId)<0)return CommandResult.No("战场未初始化或玩家编号无效");
             if(world.SimulationEnded)return CommandResult.No("作战已结束，只能查看复盘地图");
             if(logistics==null)logistics=GetComponent<LogisticsWorld>();var point=Point(c.pointId);
+            if(c.kind==BattleCommandKind.BuildInfantry){var production=world.GetComponent<InfantryProduction>();if(production==null)return CommandResult.No("尚未配置生产模块");var quote=production.Quote(c.playerId,point,c.echelon,c.automatedProduction,c.count,c.productionRole);return quote.allowed?Result(production.Queue(c.playerId,point,c.echelon,c.automatedProduction,c.count,c.productionRole)):CommandResult.No(quote.reason);}
+            if(c.kind==BattleCommandKind.CancelCityProduction){var production=world.GetComponent<InfantryProduction>();bool cancelled=production!=null&&production.Cancel(c.playerId,point,c.productionJobId);if(string.IsNullOrEmpty(c.productionJobId)&&logistics!=null)cancelled=logistics.CancelBuildFor(c.playerId,point)||cancelled;return Result(cancelled);}
             if(c.kind==BattleCommandKind.BuildFactory)return Result(logistics!=null&&logistics.BuildFactoryFor(c.playerId,point));
             if(c.kind==BattleCommandKind.BuildTruck)return Result(logistics!=null&&logistics.BuildTruckFor(c.playerId,point,null,c.echelon));
             if(c.kind==BattleCommandKind.BuildCollector){ResourceSite site=null;if(logistics!=null)foreach(var s in logistics.sites)if(s!=null&&s.siteId==c.siteId){site=s;break;}return Result(logistics!=null&&logistics.BuildCollectorFor(c.playerId,site,c.destination,point)!=null);}

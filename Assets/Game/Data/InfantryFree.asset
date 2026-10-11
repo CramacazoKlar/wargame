@@ -19,7 +19,7 @@ MonoBehaviour:
   - terrain: 2
     reductionPercent: 10.000002
   - terrain: 6
-    reductionPercent: 19.999998
+    reductionPercent: 30
   - terrain: 3
     reductionPercent: 60
   - terrain: 1

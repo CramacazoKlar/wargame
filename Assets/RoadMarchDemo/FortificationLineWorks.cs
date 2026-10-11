@@ -22,7 +22,8 @@ namespace CampaignDemo
             if(points==null||points.Count<2||points.Count>Rules.maximumLinePoints||Length(points)<Rules.minimumLineWorldLength){reason="防线太短或点数超限";return false;}
             var map=campaign.world.setup.freeMarchMap;var free=worker.GetComponent<ArmyFreeMarchMover>();if(map==null||free==null){reason="缺少地形引用";return false;}
             foreach(var p in points)if(!CombinedArmsWorld.Finite(p)||Vector2.Distance(worker.transform.position,p)>worker.combatDefinition.visionRadius+.0001f){reason="防线超出工兵视野";return false;}
-            for(int i=1;i<points.Count;i++){var a=points[i-1];var b=points[i];for(int j=1;j<i;j++)if(Fortification.SegmentsOverlap(a,b,points[j-1],points[j])&&(j<i-1||(Vector3.Cross(b-a,points[j]-points[j-1]).sqrMagnitude<=.0000000001f&&Vector3.Dot(b-a,points[j]-points[j-1])<0))){reason="防线不能自交或重复折返";return false;}if(!map.CanTraverse(new RoadPoint(a.x,a.y),new RoadPoint(b.x,b.y),free.AllowedTerrain)){reason="防线经过水域或禁行地形";return false;}foreach(var fort in campaign.combined.fortifications)if(fort!=null&&!fort.Destroyed&&fort.Crosses(a,b)){reason="防线与已有工事重叠";return false;}}
+            // Connected, crossing and overlapping lines are allowed; terrain still applies.
+            for(int i=1;i<points.Count;i++){var a=points[i-1];var b=points[i];if(!map.CanTraverse(new RoadPoint(a.x,a.y),new RoadPoint(b.x,b.y),free.AllowedTerrain)){reason="防线经过水域或禁行地形";return false;}}
             Vector3 site=(points[0]+points[points.Count-1])/2;if(!map.CanTraverse(new RoadPoint(site.x,site.y),new RoadPoint(site.x,site.y),free.AllowedTerrain)){reason="起终点中点不通行，无法施工";return false;}
             float cost=Length(points)*Rules.metersPerWorldUnit*Rules.lineCostPerMeter;var city=NearestCity(worker.ownerId,worker.transform.position);if(city==null||city.resourceStock<cost){reason="最近己方城市库存不足；不会改扣更远城市";return false;}return true;
         }

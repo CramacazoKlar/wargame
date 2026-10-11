@@ -17,7 +17,7 @@ namespace CampaignDemo
         void Start(){foreach(var d in FindObjectsOfType<ResourceDepot>())if(d.gameObject.scene==gameObject.scene&&!depots.Contains(d))depots.Add(d);}
         public void ConfigureUnit(BattleUnit u){u.Campaign=this;if(u.GetComponent<CampaignUnit>()==null)u.gameObject.AddComponent<CampaignUnit>();}
         public bool Vehicle(BattleUnit u){return u.GetComponent<PersonnelCarrier>()!=null||u.GetComponent<TransportTruck>()!=null;}
-        public float CapacityFor(BattleUnit u){return Vehicle(u)?rules.At(rules.transportEquivalents,u.combatDefinition.echelon)*rules.vehicleHealthPerEquivalent:rules.At(rules.troopStrength,u.combatDefinition.echelon);}
+        public float CapacityFor(BattleUnit u){return rules.At(rules.troopStrength,u.combatDefinition.echelon)*u.combatDefinition.squadHealth/Mathf.Max(1,rules.At(rules.troopStrength,ArmyEchelon.Squad));}
         public bool CanAttack(BattleUnit u){var role=u.combatDefinition.role;return role==UnitRole.Infantry||role==UnitRole.MountainInfantry||role==UnitRole.Engineer||role==UnitRole.Tank;}
         public void Tick(float dt)
         {if(world==null||world.SimulationEnded)return;foreach(var u in world.units)if(u!=null){u.UnderFire=false;u.GetComponent<CampaignUnit>()?.BeginCombatObservation();if(u.OnMap)u.GetComponent<CampaignUnit>()?.Advance(dt);if(u.GetComponent<CampaignUnit>()?.fortTarget!=null&&u.GetComponent<CampaignUnit>().fortTarget.Destroyed)u.GetComponent<CampaignUnit>().fortTarget=null;}if(combined!=null)combined.Tick(dt);if(logistics!=null)logistics.Tick(dt);if(lineWorks!=null)lineWorks.Tick(dt);CampaignCombatSolver.Resolve(this,dt);foreach(var unit in world.units)if(unit!=null){var state=unit.GetComponent<CampaignUnit>();if(state!=null)state.ResolveRetreatMovement(dt,rules);}CaptureDepots(dt);}
@@ -52,7 +52,7 @@ namespace CampaignDemo
         {if(!CanDeployCollector(player,p))return CommandResult.No("需己方领土内合法资源区，且付款城市库存足够");var payer=Payer(player,rules.collectorBuildCost);return logistics.BuildCollectorFor(player,SiteAt(p),p,payer)!=null?CommandResult.Yes():CommandResult.No(logistics.Message);}
         public bool CanBuildDepot(BattleUnit engineer,Vector3 p)
         {
-            if(engineer==null||!engineer.OnMap||engineer.Working||engineer.combatDefinition.role!=UnitRole.Engineer||!CombinedArmsWorld.Finite(p)||Vector2.Distance(engineer.transform.position,p)>rules.constructionRange)return false;
+            if(engineer==null||!engineer.OnMap||engineer.Working||engineer.combatDefinition.role!=UnitRole.Engineer||!CombinedArmsWorld.Finite(p)||Vector2.Distance(engineer.transform.position,p)>UnitRanges.Interaction(engineer))return false;
             float radius=rules.warehouseBuildRadius;var rect=new Rect((Vector2)p-Vector2.one*radius,Vector2.one*radius*2);if(!OwnedFootprint(rect,engineer.ownerId))return false;
             foreach(var d in depots)if(d!=null&&!d.Removed&&Vector2.Distance(p,d.transform.position)<radius*2)return false;
             var free=engineer.GetComponent<ArmyFreeMarchMover>();return free!=null&&world.setup.freeMarchMap.CanTraverse(new RoadPoint(engineer.transform.position.x,engineer.transform.position.y),new RoadPoint(p.x,p.y),free.AllowedTerrain)&&Payer(engineer.ownerId,rules.warehouseBuildCost)!=null;
@@ -71,7 +71,7 @@ namespace CampaignDemo
         {var targets=new List<UnityEngine.Object>();foreach(var p in world.points)if(p!=null&&p.ownerId==player)targets.Add(p);if(logistics!=null)foreach(var c in logistics.collectors)if(c!=null&&c.Alive&&c.ownerId==player)targets.Add(c);foreach(var d in depots)if(d!=null&&!d.Removed&&(d.ownerId==player||d.resourcePile))targets.Add(d);return targets;}
         public float TransferMaximum(TransportTruck truck,UnityEngine.Object target,bool load)
         {
-            if(truck==null||!truck.Unit.OnMap||target==null||(!(target is ResourceDepot d&&d.resourcePile)&&Owner(target)!=truck.Unit.ownerId)||Vector2.Distance(truck.transform.position,Position(target))>rules.transportInteractionRadius)return 0;
+            if(truck==null||!truck.Unit.OnMap||target==null||(!(target is ResourceDepot d&&d.resourcePile)&&Owner(target)!=truck.Unit.ownerId)||Vector2.Distance(truck.transform.position,Position(target))>UnitRanges.Interaction(truck.Unit))return 0;
             if(target is ResourceCollector collector&&!collector.Alive||target is ResourceDepot depot&&depot.Removed)return 0;
             return Mathf.Max(0,load?Mathf.Min(Stock(target),truck.Capacity-truck.Cargo):truck.Cargo);
         }

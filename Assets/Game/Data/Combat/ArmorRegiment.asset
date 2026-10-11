@@ -22,3 +22,7 @@ MonoBehaviour:
   defense: 40
   visionRadius: 3.5
   attackRadius: 1.3
+  squadHealth: 7
+  incomingDamageFactor: 0.5
+  attackIntervalSeconds: 2
+  squadShotDamage: 0.84

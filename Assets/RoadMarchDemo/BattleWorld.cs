@@ -11,7 +11,10 @@ namespace CampaignDemo
         public BattleUnit[] units;
         public RecoveryPoint[] points;
         public string[] players={"A","B"};
-        public string currentPlayer="A";
+        public string currentPlayer=BattleFactions.BluePlayerId;
+        public AbsoluteFaction CurrentAbsoluteFaction { get { return BattleFactions.Absolute(currentPlayer); } }
+        public bool RedIsPlayerControlled { get { return currentPlayer==BattleFactions.RedPlayerId; } }
+        public RelativeFaction RelativeToCurrentPlayer(string ownerId) { return BattleFactions.Relative(ownerId,currentPlayer); }
         public bool fogEnabled=true;
         [Tooltip("森林中开火后取消藏匿，敌人可按视野发现。关闭可测试持续隐蔽射击。")] public bool revealForestOnAttack=true;
         public bool revealTypesWithoutFog;
@@ -50,6 +53,7 @@ namespace CampaignDemo
         {
             if(!Initialized||SimulationEnded)return;dt=Mathf.Max(0,dt);Replay?.Advance(dt);
             foreach(var u in units)if(u!=null&&u.Alive){u.AdvanceTimer(dt);if(u.HiddenInForest&&!InForest(u))u.RevealForest();}
+            ResolveForestContact();
             if(campaign!=null)campaign.Tick(dt);else ResolveCombat(dt);ResolvePoints(dt);AdvancePointUnits(dt);if(territory!=null)territory.Resolve();
         }
         void ResolveCombat(float dt)
@@ -58,7 +62,7 @@ namespace CampaignDemo
             foreach(var attacker in units)
             {
                 if(attacker==null||!attacker.CanFire)continue;BattleUnit target=null;float nearest=float.MaxValue;
-                float range=Mathf.Min(attacker.combatDefinition.attackRadius,attacker.combatDefinition.visionRadius);
+                float range=attacker.combatDefinition.attackRadius;
                 foreach(var candidate in units)
                 {
                     if(candidate==null||!candidate.OnMap||candidate.ownerId==attacker.ownerId||!IsVisible(attacker.ownerId,candidate))continue;
@@ -122,7 +126,7 @@ namespace CampaignDemo
         {
             if(u!=null&&campaign!=null&&u.UnderFire)return false;
             if(u==null||p==null||p.kind!=FacilityKind.RecoveryPoint||!u.CanMove||p.ownerId!=u.ownerId||EnemiesNear(p))return false;
-            if((u.transform.position-p.transform.position).sqrMagnitude>p.interactionRadius*p.interactionRadius)return false;
+            if((u.transform.position-p.transform.position).sqrMagnitude>UnitRanges.Interaction(u)*UnitRanges.Interaction(u))return false;
             int count=0;foreach(var other in units)if(other!=null&&other.Alive&&other.Point==p)count++;
             return count<p.capacity;
         }
@@ -137,7 +141,34 @@ namespace CampaignDemo
         {return Inspection&&u!=null&&u.ownerId==currentPlayer&&InForest(u)&&u.SetForestAttack(enabled);}
         public bool RequestEnter(BattleUnit u,RecoveryPoint p) { return u!=null&&u.ownerId==currentPlayer&&CanEnter(u,p)&&u.BeginEnter(p); }
         public bool RequestEscape(BattleUnit u) { return u!=null&&u.ownerId==currentPlayer&&u.Escape(escapeLossFraction,escapeGraceSeconds); }
-        public bool IsVisible(string player,BattleUnit target) { return target!=null&&target.OnMap&&(target.ownerId==player||(!target.HiddenInForest&&(!fogEnabled||VisibleAt(player,target.transform.position)))); }
+        // Vision alone cannot reveal forest concealment; ordinary weapon contact can.
+        public static bool WithinContactRange(Vector3 a,Vector3 b,float range)
+        {return range>0&&(a-b).sqrMagnitude<=range*range;}
+        bool CanCloseFight(BattleUnit u)
+        {
+            if(u==null||!u.OnMap||u.Working||u.combatDefinition==null||u.combatDefinition.attackRadius<=0)return false;
+            if(u.State!=ArmyBattleState.Deployed&&u.State!=ArmyBattleState.Engaged)return false;
+            if(campaign!=null)return campaign.CanAttack(u);
+            return u.combatDefinition.role!=UnitRole.Artillery&&u.combatDefinition.fullStrengthAttack>0&&u.GetComponent<PersonnelCarrier>()==null&&u.GetComponent<TransportTruck>()==null;
+        }
+        public bool HasCloseContact(string player,BattleUnit target)
+        {
+            if(target==null||!target.OnMap||target.combatDefinition==null)return false;
+            foreach(var observer in units)if(observer!=null&&observer.OnMap&&observer.ownerId==player&&observer.ownerId!=target.ownerId&&observer.combatDefinition!=null)
+                if(CanCloseFight(observer)&&WithinContactRange(observer.transform.position,target.transform.position,observer.combatDefinition.attackRadius)||CanCloseFight(target)&&WithinContactRange(observer.transform.position,target.transform.position,target.combatDefinition.attackRadius))return true;
+            return false;
+        }
+        void ResolveForestContact()
+        {
+            foreach(var hidden in units){if(hidden==null||!hidden.OnMap||!hidden.HiddenInForest||hidden.combatDefinition==null)continue;
+                foreach(var other in units){if(other==null||!other.OnMap||other.ownerId==hidden.ownerId||other.combatDefinition==null)continue;
+                    if(!(CanCloseFight(other)&&WithinContactRange(hidden.transform.position,other.transform.position,other.combatDefinition.attackRadius))&&!(CanCloseFight(hidden)&&WithinContactRange(hidden.transform.position,other.transform.position,hidden.combatDefinition.attackRadius)))continue;
+                    hidden.RevealForest();other.RevealForest();Intel.Identify(hidden.ownerId,other);Intel.Identify(other.ownerId,hidden);
+                }
+            }
+        }
+
+        public bool IsVisible(string player,BattleUnit target) { return target!=null&&target.OnMap&&(target.ownerId==player||AICheatRules.FullIntel(this,player)||(!target.HiddenInForest&&(!fogEnabled||VisibleAt(player,target.transform.position)||HasCloseContact(player,target)))); }
         public bool VisibleAt(string player,Vector3 position)
         { foreach(var u in units)if(u!=null&&u.OnMap&&u.ownerId==player&&(u.transform.position-position).sqrMagnitude<=u.combatDefinition.visionRadius*u.combatDefinition.visionRadius)return true;return false; }
         public bool IsKnown(string player,BattleUnit u) { return (!fogEnabled&&revealTypesWithoutFog)||Intel.Knows(player,u); }
@@ -169,7 +200,7 @@ namespace CampaignDemo
         {
             if(!Initialized||SimulationEnded)return;
             foreach(var u in units)if(u!=null)
-            { var view=u.View;if(view!=null)view.Apply(IsVisible(currentPlayer,u),u.ownerId==currentPlayer,IsKnown(currentPlayer,u),unknownUnitSprite);var m=u.Motor;if(m!=null)m.SetRouteVisible(setup.showCommittedRoutes&&u.ownerId==currentPlayer&&u.OnMap&&!m.PlanningPaused&&GetComponent<ArmySelection>()!=null&&GetComponent<ArmySelection>().Selected==u.GetComponent<ArmyRoadMover>()); }
+            { var view=u.View;if(view!=null)view.Apply(IsVisible(currentPlayer,u),u.ownerId==currentPlayer,IsKnown(currentPlayer,u),unknownUnitSprite);var m=u.Motor;if(m!=null)m.SetRouteVisible(setup.showCommittedRoutes&&u.ownerId==currentPlayer&&u.OnMap&&!m.PlanningPaused&&GetComponent<ArmySelection>()!=null&&GetComponent<ArmySelection>().Contains(u.GetComponent<ArmyRoadMover>())); }
         }
     }
 }

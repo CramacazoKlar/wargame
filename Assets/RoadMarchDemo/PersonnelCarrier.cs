@@ -24,7 +24,7 @@ namespace CampaignDemo
             var role=passenger.combatDefinition.role;
             if(role!=UnitRole.Infantry&&role!=UnitRole.MountainInfantry&&role!=UnitRole.Scout&&role!=UnitRole.Artillery&&role!=UnitRole.Engineer)return CommandResult.No("只能装载步兵（含山地步兵）、侦察兵、炮兵、工兵");
             if(Used+passenger.Personnel>PassengerCapacity)return CommandResult.No("运兵车容量不足");
-            if(Vector2.Distance(transform.position,passenger.transform.position)>boardingRadius)return CommandResult.No("部队距离运兵车太远");
+            if(Vector2.Distance(transform.position,passenger.transform.position)>UnitRanges.Interaction(passenger))return CommandResult.No("部队距离运兵车太远");
             var battery=passenger.GetComponent<ArtilleryBattery>();if(battery!=null&&battery.Deployed)return CommandResult.No("炮兵需先撤收再上车");if(passenger.Motor!=null)passenger.Motor.Stop();passenger.RevealForest();passenger.SetCarrier(this);passengers.Add(passenger);return CommandResult.Yes();
         }
         public CommandResult Unload(BattleUnit passenger,BattleWorld world)

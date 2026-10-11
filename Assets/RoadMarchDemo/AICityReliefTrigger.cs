@@ -15,7 +15,7 @@ namespace CampaignDemo {
   public void Tick(float dt){
    if(city!=null&&controller!=null&&city.ownerId!=controller.playerId){threatSeconds=0;return;}
    if(controller==null||controller.profile==null||!controller.profile.cityRelief)return;
-   if(triggered||taskKeys==null||taskKeys.Length==0||controller==null||!controller.aiEnabled||controller.world==null||!controller.world.Initialized||city==null||city.ownerId!=controller.playerId||(controller.pauseWhenPlayerControlled&&controller.world.currentPlayer==controller.playerId))return;
+   if(triggered||taskKeys==null||taskKeys.Length==0||controller==null||!controller.CanThink||controller.world==null||!controller.world.Initialized||city==null||city.ownerId!=controller.playerId||(controller.pauseWhenPlayerControlled&&controller.world.currentPlayer==controller.playerId))return;
    controller.Refresh();if(controller.information==null)return;bool threatened=false;
    foreach(var id in controller.information.GetVisibleArmyIds(controller.playerId)){var info=controller.information.GetArmy(controller.playerId,id);if(info!=null&&!info.own&&info.visible&&info.alive&&info.onMap&&Vector2.Distance(info.position,city.transform.position)<=threatRadius){threatened=true;break;}}
    if(!threatened){threatSeconds=0;return;}threatSeconds+=Mathf.Max(0,dt);if(threatSeconds<requiredThreatSeconds)return;

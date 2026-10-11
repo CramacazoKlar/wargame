@@ -29,7 +29,7 @@ namespace CampaignDemo {
    if(phase==Phase.Source||phase==Phase.Load){
     if(!Valid(ai,currentSource)||ai.world.campaign.Stock(currentSource)<=0){var next=PickSource(ai);if(next!=currentSource&&own.isMoving==true)Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement});currentSource=next;phase=Phase.Source;}
     if(currentSource==null){ResponseState="等待可用货源";retry=retrySeconds;return true;}
-    if(Vector2.Distance(own.position,ai.world.campaign.Position(currentSource))>ai.world.campaign.rules.transportInteractionRadius){ResponseState="前往货源";Move(ai,order,own,ai.world.campaign.Position(currentSource),useRoad);return true;}
+    if(Vector2.Distance(own.position,ai.world.campaign.Position(currentSource))>UnitRanges.Interaction(unit)){ResponseState="前往货源";Move(ai,order,own,ai.world.campaign.Position(currentSource),useRoad);return true;}
     if(own.isMoving==true&&!Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement}))return true;
     float amount=ai.world.campaign.TransferMaximum(truck,currentSource,true);if(loadLimit>0)amount=Mathf.Min(amount,loadLimit);ResponseState="装载资源";
     string storageKey=currentSource.GetInstanceID().ToString();amount=Mathf.Min(amount,Mathf.Max(0,ai.world.campaign.Stock(currentSource)-ai.reservations.ReservedAt(storageKey)));if(amount<=0){ResponseState="货源已被预约，等待";retry=retrySeconds;return true;}if(!ai.reservations.Reserve(order.RuntimeTaskId,storageKey,amount,ai.world.campaign.Stock(currentSource)))return true;bool loaded=Send(ai,order,Transfer(currentSource,true,amount));ai.reservations.ReleaseResource(order.RuntimeTaskId,storageKey);if(!loaded)return true;phase=Phase.Destination;
@@ -38,7 +38,7 @@ namespace CampaignDemo {
     if(!Valid(ai,currentDestination)||currentDestination==currentSource){var next=PickDestination(ai);if(next!=currentDestination&&own.isMoving==true)Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement});currentDestination=next;phase=Phase.Destination;}
     if(currentDestination==null){ai.reservations.SetIncoming(order.RuntimeTaskId,"",0);ResponseState="没有己方卸货目标，保留货物";retry=retrySeconds;return true;}
     ai.reservations.SetIncoming(order.RuntimeTaskId,currentDestination.GetInstanceID().ToString(),truck.Cargo);
-    if(Vector2.Distance(own.position,ai.world.campaign.Position(currentDestination))>ai.world.campaign.rules.transportInteractionRadius){ResponseState="前往卸货地点";Move(ai,order,own,ai.world.campaign.Position(currentDestination),useRoad);return true;}
+    if(Vector2.Distance(own.position,ai.world.campaign.Position(currentDestination))>UnitRanges.Interaction(unit)){ResponseState="前往卸货地点";Move(ai,order,own,ai.world.campaign.Position(currentDestination),useRoad);return true;}
     if(own.isMoving==true&&!Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement}))return true;
     float amount=ai.world.campaign.TransferMaximum(truck,currentDestination,false);ResponseState="卸载资源";if(amount>0&&!Send(ai,order,Transfer(currentDestination,false,amount)))return true;
     ai.reservations.SetIncoming(order.RuntimeTaskId,"",0);phase=repeat?Phase.Source:Phase.Complete;if(!repeat)ai.CompleteTask(order,"单趟运输完成");retry=retrySeconds;

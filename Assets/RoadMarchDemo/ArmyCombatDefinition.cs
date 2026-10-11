@@ -14,6 +14,11 @@ namespace CampaignDemo
         [Range(2,4)] public int echelonRatio=3;
         [Min(0)] public float fullStrengthAttack=15;
         [Min(0)] public float defense=20;
+        [Header("新版普通交火；满编班为基准，炮兵仍由玩家发射")]
+        [Min(.01f)] public float squadHealth=7;
+        [Range(0,1)] public float incomingDamageFactor=1;
+        [Min(.01f)] public float attackIntervalSeconds=1;
+        [Min(0)] public float squadShotDamage=.14f;
         [Min(.01f)] public float visionRadius=3.5f;
         [Min(.01f)] public float attackRadius=1.1f;
         public int FullPersonnel { get { return CombatMath.FullPersonnel(squadSize,echelonRatio,(int)echelon); } }

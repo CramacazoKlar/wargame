@@ -8,6 +8,10 @@ namespace CampaignDemo
         SpriteDrawMode[] originalModes;Vector2[] originalSizes;
         [Tooltip("Fixed width of the complete symbol canvas in screen pixels, including transparent margins.")]
         [Min(0)] public float minimumSymbolPixels=36;
+        [Tooltip("己方处于森林隐藏状态时的军标不透明度；越低越浅。")]
+        [Range(.2f,.8f)] public float hiddenSymbolOpacity=.4f;
+        public static Color ForestVisibilityColor(Color color,bool own,bool hidden,float opacity)
+        {if(own&&hidden)color.a*=Mathf.Clamp01(opacity);return color;}
         public void Initialize()
         { identity=GetComponent<UnitSymbolIdentity>();unit=GetComponent<BattleUnit>();renderers=GetComponentsInChildren<SpriteRenderer>();original=new Sprite[renderers.Length];colors=new Color[renderers.Length];originalModes=new SpriteDrawMode[renderers.Length];originalSizes=new Vector2[renderers.Length];for(int i=0;i<renderers.Length;i++){original[i]=renderers[i].sprite;colors[i]=renderers[i].color;originalModes[i]=renderers[i].drawMode;originalSizes[i]=renderers[i].size;} }
         public void Apply(bool visible,bool own,bool known,Sprite unknown)
@@ -17,6 +21,7 @@ namespace CampaignDemo
             { var r=renderers[i];if(r==null)continue;if(i!=0||identity==null){r.drawMode=originalModes[i];r.size=originalSizes[i];}r.enabled=visible&&(known||i==0);r.sprite=known||unknown==null?original[i]:unknown;r.color=own?colors[i]:known?new Color(1,.55f,.55f,colors[i].a):Color.white; var symbols=identity; if(i==0&&symbols!=null&&(known||own)){var icon=symbols.Select(own);if(icon!=null){r.sprite=icon;r.color=Color.white;}}else if(i==0&&!own&&!known&&symbols!=null&&symbols.catalog!=null&&symbols.catalog.enemyUnknown!=null){r.sprite=symbols.catalog.enemyUnknown;r.color=Color.white;
                 }
                 if(i==0&&symbols!=null&&symbols.catalog!=null)NormalizeSymbol(r,symbols.catalog);
+                if(i==0)r.color=ForestVisibilityColor(r.color,own,unit!=null&&unit.OnMap&&unit.HiddenInForest,hiddenSymbolOpacity);
             }
         }
         void LateUpdate()

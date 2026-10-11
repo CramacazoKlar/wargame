@@ -97,6 +97,13 @@ namespace CampaignDemo
             return path!=null;
         }
 
+        // Project any cursor position onto the closest reachable road, with no distance cutoff.
+        public bool SnapConnected(RoadHit previous,RoadPoint cursor,out RoadHit next,out List<RoadPoint> connector)
+        {
+            next=default(RoadHit);connector=null;
+            foreach(var hit in Candidates(cursor,double.PositiveInfinity))if(Connect(previous,hit,double.PositiveInfinity,out connector)){next=hit;return true;}
+            return false;
+        }
         // Continuity rejects nearby roads that are disconnected or reachable only by a long detour.
         public bool Trace(RoadHit previous, RoadPoint cursor, double tolerance,
                           double maxConnector, out RoadHit next, out List<RoadPoint> connector)

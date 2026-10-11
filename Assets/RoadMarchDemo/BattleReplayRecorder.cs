@@ -5,6 +5,7 @@ namespace CampaignDemo {
  [Serializable] public sealed class ReplayVisionTrail {public float radius;public List<Vector3> points=new List<Vector3>();}
  [Serializable] public sealed class ReplayArmy {
   public string id,owner,label;public UnitRole role;public ArmyEchelon echelon;
+  public bool hasInitialPosition;public Vector3 initialPosition;
   public bool hasSummaryStart;public Vector3 summaryStart;public List<ReplayTimedPoint> timeline=new List<ReplayTimedPoint>();
   public bool dead;public Vector3 finalPosition,displayPosition;public float deathTime=-1;
   public List<List<Vector3>> routes=new List<List<Vector3>>();public List<List<Vector3>> fullRoutes=new List<List<Vector3>>();
@@ -33,7 +34,7 @@ namespace CampaignDemo {
     records.Add(army.id,army);Snapshot.armies.Add(army);
    }
    if(army.dead)return;
-   var p=unit.Carrier!=null?unit.Carrier.Unit.transform.position:unit.Point!=null&&!unit.OnMap?unit.Point.transform.position:unit.transform.position;p.z=0;army.finalPosition=p;QuarterReplay.Capture(army,Snapshot.elapsed,p,unit.combatDefinition.visionRadius,unit.OnMap);
+   var p=unit.Carrier!=null?unit.Carrier.Unit.transform.position:unit.Point!=null&&!unit.OnMap?unit.Point.transform.position:unit.transform.position;p.z=0;if(!army.hasInitialPosition){army.initialPosition=p;army.hasInitialPosition=true;}army.finalPosition=p;QuarterReplay.Capture(army,Snapshot.elapsed,p,unit.combatDefinition.visionRadius,unit.OnMap);
    bool travel=unit.Alive&&(unit.OnMap||unit.Carrier!=null);
    if(travel){if(!army.travelling||army.movementSegments.Count==0)army.movementSegments.Add(new List<ReplayTimedPoint>());var segment=army.movementSegments[army.movementSegments.Count-1];var sample=new ReplayTimedPoint{time=Snapshot.elapsed,position=p};if(segment.Count>0&&segment[segment.Count-1].time==sample.time)segment[segment.Count-1]=sample;else segment.Add(sample);if(!army.travelling||army.fullRoutes.Count==0)army.fullRoutes.Add(new List<Vector3>());Append(army.fullRoutes[army.fullRoutes.Count-1],p);}army.travelling=travel;bool post=travel&&Snapshot.firstContact>=0;if(post){if(!army.postTravelling||army.routes.Count==0)army.routes.Add(new List<Vector3>());Append(army.routes[army.routes.Count-1],p);}army.postTravelling=post;
 
@@ -47,6 +48,6 @@ namespace CampaignDemo {
   public void BeginContact(){if(Finished||Snapshot.firstContact>=0)return;Sample();Snapshot.firstContact=Snapshot.elapsed;Sample();}
   public void RecordDeath(BattleUnit unit){if(Finished)return;if(records.TryGetValue(unit.unitId,out var existing)&&existing.dead)return;SampleUnit(unit);if(records.TryGetValue(unit.unitId,out var a)){QuarterReplay.Capture(a,Snapshot.elapsed,a.finalPosition,unit.combatDefinition.visionRadius,unit.OnMap,true);a.dead=true;a.deathTime=Snapshot.elapsed;a.travelling=false;a.observing=false;}}
   void SampleDefenses(){var combined=world.GetComponent<CombinedArmsWorld>();if(combined==null)return;foreach(var fort in combined.fortifications)if(fort!=null&&!defenses.ContainsKey(fort.GetInstanceID())){var record=new ReplayDefense{owner=fort.ownerId,destroyed=fort.Destroyed,fort=fort,points=fort.IsLine?(Vector3[])fort.linePoints.Clone():new[]{fort.transform.position+Vector3.left*fort.radius,fort.transform.position+Vector3.right*fort.radius}};defenses.Add(fort.GetInstanceID(),record);Snapshot.defenses.Add(record);}foreach(var record in Snapshot.defenses)if(record.fort==null||record.fort.Destroyed)record.destroyed=true;}
-  public void Finish(){if(Finished)return;Sample();foreach(var army in Snapshot.armies)if(!army.dead)QuarterReplay.Capture(army,Snapshot.elapsed,army.finalPosition,army.unit.combatDefinition.visionRadius,army.unit.OnMap,true);QuarterReplay.Build(Snapshot);foreach(var army in Snapshot.armies)QuarterReplay.BuildTactical(army,0f);ReplayTacticalCleanup.Build(Snapshot,Mathf.Max(world.setup.settings.arrowShaftWidth,Snapshot.bounds.width/2048f*world.setup.settings.minimumArrowShaftPixels));ReplayTacticalCleanup.Polish(Snapshot,Mathf.Max(world.setup.settings.arrowShaftWidth,Snapshot.bounds.width/2048f*world.setup.settings.minimumArrowShaftPixels));Finished=true;var display=gameObject.AddComponent<BattleReplayPresentation>();display.recorder=this;display.Build();}
+  public void Finish(){if(Finished)return;Sample();foreach(var army in Snapshot.armies)if(!army.dead)QuarterReplay.Capture(army,Snapshot.elapsed,army.finalPosition,army.unit.combatDefinition.visionRadius,army.unit.OnMap,true);QuarterReplay.Build(Snapshot);foreach(var army in Snapshot.armies)QuarterReplay.BuildTactical(army,0f);ReplayTacticalCleanup.Build(Snapshot,Mathf.Max(.03f,world.setup.settings.arrowShaftWidth));ReplayTacticalCleanup.Polish(Snapshot,Mathf.Max(.03f,world.setup.settings.arrowShaftWidth));Finished=true;var display=gameObject.AddComponent<BattleReplayPresentation>();display.recorder=this;display.Build();}
  }
 }

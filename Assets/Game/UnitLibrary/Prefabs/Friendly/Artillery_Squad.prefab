@@ -126,7 +126,7 @@ MonoBehaviour:
   overrideSettings: 0
   mode2ReductionPercent: 25
   terrainReductions: []
-  allowedTerrain: 71
+  allowedTerrain: 7
 --- !u!114 &3650166727375320420
 MonoBehaviour:
   m_ObjectHideFlags: 0

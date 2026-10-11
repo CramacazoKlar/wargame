@@ -6,7 +6,9 @@ namespace CampaignDemo
     public sealed class FreeMarchController : MonoBehaviour
     {
         public Camera mapCamera;
-        public float planningSensitivity=1; Vector3 strokeOrigin;
+        public float planningSensitivity=1; Vector3 strokeOrigin,strokeAnchor;
+        [Min(0)] public float startDragPixels=6;
+        bool strokeStarted;
         public MouseModeStateMachine modes;
         public ArmySelection selection;
         public FreeMarchMapRuntime map;
@@ -28,10 +30,11 @@ namespace CampaignDemo
             if(mapCamera==null||selection==null||map==null||map.definition==null||settings==null||preview==null||modes==null)
             { Cancel(); Debug.LogError("FreeMarchController: camera, selection, terrain map, settings, preview or modes missing.",this); enabled=false; return; }
             if (modes==null||modes.CurrentMode!=MouseCommandMode.FreeMarch) return;
+            if(selection.HasBoxSelection&&selection.SelectedArmies.Count>0){if(drawing)Cancel();return;}
             if(Input.GetMouseButton(1)) { if(drawing) Cancel(); return; }
             if(drawing&&(army==null||motor==null||!army.isActiveAndEnabled||!motor.isActiveAndEnabled||motor.MovementLocked)) { Cancel(); return; }
             if(Input.GetKeyDown(KeyCode.Escape)) Cancel();
-            var raw=Input.mousePosition; var mouse=drawing?strokeOrigin+(raw-strokeOrigin)*Mathf.Clamp(planningSensitivity,.25f,2):raw; bool blocked=raw.y>Screen.height-topInterfacePixels||
+            var raw=Input.mousePosition; var mouse=drawing?strokeAnchor+(raw-strokeOrigin)*Mathf.Clamp(planningSensitivity,.25f,2):raw; bool blocked=raw.y>Screen.height-topInterfacePixels||
                 (EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject());
             var w=mapCamera.ScreenToWorldPoint(new Vector3(mouse.x,mouse.y,-mapCamera.transform.position.z)); var cursor=new RoadPoint(w.x,w.y);
             if(Input.GetMouseButtonDown(0)&&!blocked)
@@ -44,7 +47,7 @@ namespace CampaignDemo
                 if(Vector2.Distance(new Vector2(p.x,p.y),new Vector2(mouse.x,mouse.y))>settings.startPixels) { Status="Start near the army."; return; }
                 motor=selected.Motor;
                 if(motor==null||!motor.isActiveAndEnabled||!army.isActiveAndEnabled||motor.MovementLocked) { Status="Army movement is unavailable."; return; }
-                strokeOrigin=raw; motor.PlanningPaused=true; drawing=true; invalid=false; draft.Clear();
+                strokeOrigin=raw; strokeAnchor=p; strokeStarted=false; motor.PlanningPaused=true; drawing=true; invalid=false; draft.Clear();
                 var at=selected.transform.position; RoadNetwork.Append(draft,new RoadPoint(at.x,at.y));
                 preview.SetColor(settings.validRouteColor); preview.ShowArrow(draft); Status="Draw freely. Forbidden terrain turns red.";
             }
@@ -56,7 +59,7 @@ namespace CampaignDemo
                 else Status=invalid?"Forbidden terrain: previous order retained.":"Army selected.";
                 Finish();
             }
-            else if(drawing&&Input.GetMouseButton(0)) { if(blocked) invalid=true; else Sample(cursor,false); UpdatePreview(); }
+            else if(drawing&&!Input.GetMouseButtonDown(0)&&Input.GetMouseButton(0)) { if(blocked) invalid=true; else Sample(cursor,false); UpdatePreview(); }
         }
         bool SubmitRoute(ArmyFreeMarchMover mover,IList<RoadPoint> route)
         {
@@ -66,11 +69,19 @@ namespace CampaignDemo
         void Sample(RoadPoint cursor,bool final)
         {
             if(army==null||motor==null||draft.Count==0) { Cancel(); return; }
+            // Ignore initial hand jitter; anchor the stroke to the army.
+            if(!strokeStarted)
+            {
+                var delta=Input.mousePosition-strokeOrigin; delta.z=0;
+                if(delta.sqrMagnitude<=startDragPixels*startDragPixels) return;
+                strokeStarted=true;
+            }
             var last=draft[draft.Count-1]; double d=RoadPoint.Distance(last,cursor);
             if(d<0.00001||(!final&&d<minimumPointDistance)) return;
             if(!army.CanTraverse(map,last,cursor)) invalid=true;
             RoadNetwork.Append(draft,cursor);
         }
+
         void UpdatePreview() { preview.SetColor(invalid?settings.invalidRouteColor:settings.validRouteColor); preview.ShowArrow(draft); if(invalid) Status="Forbidden terrain. Release and redraw."; }
         void Finish() { if(motor!=null) motor.PlanningPaused=false; drawing=false; invalid=false; draft.Clear(); if(preview!=null) preview.Clear(); army=null; motor=null; }
         void Cancel() { Finish(); Status="Draft cancelled. Previous order retained."; }

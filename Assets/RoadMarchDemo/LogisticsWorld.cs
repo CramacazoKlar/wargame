@@ -16,7 +16,7 @@ namespace CampaignDemo
         [Min(0)] public float factoryBuildCost=500;
         [Min(.1f)] public float factoryBuildSeconds=10;
         public string Message {get;private set;}
-        sealed class BuildJob {public RecoveryPoint city;public string owner;public GameObject prefab;public float remaining;public bool factory;public ArmyEchelon echelon;}
+        sealed class BuildJob {public RecoveryPoint city;public string owner;public GameObject prefab;public float remaining,paidCost;public bool factory;public ArmyEchelon echelon;}
         readonly List<BuildJob> jobs=new List<BuildJob>();
         void Start(){if(world==null)world=GetComponent<BattleWorld>();foreach(var c in collectors)if(c!=null){c.Campaign=world.campaign;c.Initialize();}}
         void Update(){if(world==null||!world.Initialized||world.campaign!=null)return;Tick(Time.deltaTime);}
@@ -25,9 +25,9 @@ namespace CampaignDemo
             dt=Mathf.Max(0,dt);
             foreach(var c in collectors)if(c!=null){c.Tick(dt);bool visible=c.Alive&&(c.ownerId==world.currentPlayer||!world.fogEnabled||world.VisibleAt(world.currentPlayer,c.transform.position));foreach(var r in c.GetComponentsInChildren<SpriteRenderer>())r.enabled=visible;}
 
-            if(world.campaign==null)foreach(var u in world.units)if(u!=null){var t=u.GetComponent<TransportTruck>();if(t==null||!u.Alive)continue;if(u.OnMap&&u.State!=ArmyBattleState.Engaged){foreach(var p in world.points)if(p!=null&&p.kind==FacilityKind.RecoveryPoint&&p.ownerId==u.ownerId&&Vector2.Distance(t.transform.position,p.transform.position)<=p.interactionRadius){if(p!=t.sourceCity||!t.Automatic)Unload(t,p);}}
+            if(world.campaign==null)foreach(var u in world.units)if(u!=null){var t=u.GetComponent<TransportTruck>();if(t==null||!u.Alive)continue;if(u.OnMap&&u.State!=ArmyBattleState.Engaged){foreach(var p in world.points)if(p!=null&&p.kind==FacilityKind.RecoveryPoint&&p.ownerId==u.ownerId&&Vector2.Distance(t.transform.position,p.transform.position)<=UnitRanges.Interaction(u)){if(p!=t.sourceCity||!t.Automatic)Unload(t,p);}}
                 if(!t.Automatic&&u.OnMap&&u.CanMove)LoadAtSource(t);t.Tick(this,dt);}
-            for(int i=jobs.Count-1;i>=0;i--){var j=jobs[i];if(j.city==null||j.city.ownerId!=j.owner){jobs.RemoveAt(i);continue;}j.remaining-=dt;if(j.remaining>0)continue;if(j.factory)j.city.hasFactory=true;else SpawnTruck(j);jobs.RemoveAt(i);}
+            for(int i=jobs.Count-1;i>=0;i--){var j=jobs[i];if(j.city==null||j.city.ownerId!=j.owner){jobs.RemoveAt(i);continue;}j.remaining-=dt*AICheatRules.Production(world,j.owner);if(j.remaining>0)continue;if(j.factory)j.city.hasFactory=true;else SpawnTruck(j);jobs.RemoveAt(i);}
         }
         public bool AttackCollector(BattleUnit attacker,float dt)
         {
@@ -41,26 +41,29 @@ namespace CampaignDemo
         public void LoadAtSource(TransportTruck t)
         {
             if(t==null||t.definition==null||t.Unit==null||!t.Unit.OnMap||!t.Unit.CanMove)return;float space=Mathf.Max(0,t.Capacity-t.Cargo);if(space<=0)return;
-            if(t.sourceCollector!=null){var c=t.sourceCollector;if(c.Alive&&c.ownerId==t.Unit.ownerId&&Vector2.Distance(t.transform.position,c.transform.position)<=t.definition.loadingRadius)t.Load(c.Take(space));}
-            else if(t.sourceCity!=null){var p=t.sourceCity;if(p.kind==FacilityKind.RecoveryPoint&&p.ownerId==t.Unit.ownerId&&Vector2.Distance(t.transform.position,p.transform.position)<=t.definition.loadingRadius){float amount=Mathf.Min(space,Mathf.Max(0,p.resourceStock));p.resourceStock-=amount;t.Load(amount);}}
+            if(t.sourceCollector!=null){var c=t.sourceCollector;if(c.Alive&&c.ownerId==t.Unit.ownerId&&Vector2.Distance(t.transform.position,c.transform.position)<=UnitRanges.Interaction(t.Unit))t.Load(c.Take(space));}
+            else if(t.sourceCity!=null){var p=t.sourceCity;if(p.kind==FacilityKind.RecoveryPoint&&p.ownerId==t.Unit.ownerId&&Vector2.Distance(t.transform.position,p.transform.position)<=UnitRanges.Interaction(t.Unit)){float amount=Mathf.Min(space,Mathf.Max(0,p.resourceStock));p.resourceStock-=amount;t.Load(amount);}}
         }
-        public void Unload(TransportTruck t,RecoveryPoint city){if(t==null||t.Unit==null||city==null||city.kind!=FacilityKind.RecoveryPoint||city.ownerId!=t.Unit.ownerId)return;city.resourceStock+=t.Cargo;t.ClearCargo();}
+        public void Unload(TransportTruck t,RecoveryPoint city){if(t==null||t.Unit==null||city==null||city.kind!=FacilityKind.RecoveryPoint||city.ownerId!=t.Unit.ownerId||!t.Unit.OnMap||Vector2.Distance(t.transform.position,city.transform.position)>UnitRanges.Interaction(t.Unit))return;city.resourceStock+=t.Cargo;t.ClearCargo();}
         public int FactoryCount(string owner,bool pending=false){int n=0;foreach(var p in world.points)if(p!=null&&p.ownerId==owner&&p.kind==FacilityKind.RecoveryPoint&&p.hasFactory)n++;if(pending)foreach(var j in jobs)if(j.factory&&j.owner==owner)n++;return n;}
-        public bool IsBuilding(RecoveryPoint city){foreach(var j in jobs)if(j.city==city)return true;return false;}
-        public string BuildStatus(RecoveryPoint city){foreach(var j in jobs)if(j.city==city)return(j.factory?"升级兵工厂":"制造运输车")+" "+j.remaining.ToString("0.0")+"秒";return "无建造任务";}
+        public bool HasNonInfantryJob(RecoveryPoint city){foreach(var job in jobs)if(job.city==city)return true;return false;}
+        public bool CancelBuildFor(string player,RecoveryPoint city){if(city==null||city.ownerId!=player||world.SimulationEnded)return false;bool any=false;for(int i=jobs.Count-1;i>=0;i--)if(jobs[i].city==city&&jobs[i].owner==player){city.resourceStock+=jobs[i].paidCost;jobs.RemoveAt(i);any=true;}return any;}
+        public bool IsBuilding(RecoveryPoint city){var infantry=GetComponent<InfantryProduction>();if(infantry!=null&&infantry.IsBuilding(city))return true;foreach(var j in jobs)if(j.city==city)return true;return false;}
+        public string BuildStatus(RecoveryPoint city){var infantry=GetComponent<InfantryProduction>();if(infantry!=null&&infantry.IsBuilding(city))return infantry.BuildStatus(city);foreach(var j in jobs)if(j.city==city)return(j.factory?"升级兵工厂":"制造运输车")+" "+j.remaining.ToString("0.0")+"秒";return "无建造任务";}
         bool Management {get{return world!=null&&world.setup!=null&&world.setup.modes.CurrentMode==MouseCommandMode.Interaction;}}
         public bool BuildFactory(RecoveryPoint city){return Management&&BuildFactoryFor(world.currentPlayer,city);}
         public bool BuildFactoryFor(string player,RecoveryPoint city)
         {
             if(System.Array.IndexOf(world.players,player)<0||city==null||city.ownerId!=player||city.kind!=FacilityKind.RecoveryPoint||city.hasFactory||IsBuilding(city)||FactoryCount(city.ownerId,true)>=factoryLimitPerPlayer||city.resourceStock<factoryBuildCost){Message="无法升级：检查归属、库存、工厂上限或建造任务";return false;}
-            city.resourceStock-=factoryBuildCost;jobs.Add(new BuildJob{city=city,owner=city.ownerId,factory=true,remaining=factoryBuildSeconds});Message="开始升级兵工厂";return true;
+            city.resourceStock-=factoryBuildCost;jobs.Add(new BuildJob{city=city,owner=city.ownerId,factory=true,remaining=factoryBuildSeconds,paidCost=factoryBuildCost});Message="开始升级兵工厂";return true;
         }
         public bool BuildTruck(RecoveryPoint city,GameObject prefab=null,ArmyEchelon echelon=ArmyEchelon.Company){return Management&&BuildTruckFor(world.currentPlayer,city,prefab,echelon);}
         public bool BuildTruckFor(string player,RecoveryPoint city,GameObject prefab=null,ArmyEchelon echelon=ArmyEchelon.Company)
         {
+            if(!LevelUnitAvailability.Allowed(world,UnitRole.Logistics)){Message="本关未开放资源车";return false;}
             prefab=prefab==null?truckPrefab:prefab;var t=prefab==null?null:prefab.GetComponent<TransportTruck>();var u=prefab==null?null:prefab.GetComponent<BattleUnit>();var mover=prefab==null?null:prefab.GetComponent<ArmyRoadMover>();
-            if(System.Array.IndexOf(world.players,player)<0||city==null||city.kind!=FacilityKind.RecoveryPoint||city.ownerId!=player||IsBuilding(city)||t==null||t.definition==null||u==null||u.combatDefinition==null||mover==null||mover.definition==null||city.resourceStock<t.definition.buildCost){Message="无法制造：检查城市、库存和运输车Prefab配置";return false;}
-            city.resourceStock-=t.definition.buildCost;jobs.Add(new BuildJob{city=city,owner=city.ownerId,prefab=prefab,echelon=echelon,remaining=t.definition.buildSeconds});Message="开始制造运输车";return true;
+            if(System.Array.IndexOf(world.players,player)<0||city==null||city.kind!=FacilityKind.RecoveryPoint||city.ownerId!=player||IsBuilding(city)||t==null||t.definition==null||u==null||u.combatDefinition==null||mover==null||mover.definition==null||city.resourceStock<t.definition.BuildCost(echelon)){Message="无法制造：检查城市、库存和运输车Prefab配置";return false;}
+            city.resourceStock-=t.definition.BuildCost(echelon);jobs.Add(new BuildJob{city=city,owner=city.ownerId,prefab=prefab,echelon=echelon,remaining=t.definition.buildSeconds,paidCost=t.definition.BuildCost(echelon)});Message="开始制造运输车";return true;
         }
         void SpawnTruck(BuildJob job)
         {

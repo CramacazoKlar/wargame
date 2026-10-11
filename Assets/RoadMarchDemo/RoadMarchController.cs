@@ -9,7 +9,9 @@ namespace CampaignDemo
     public sealed class RoadMarchController : MonoBehaviour
     {
         public Camera mapCamera;
-        public float planningSensitivity=1; Vector3 strokeOrigin;
+        public float planningSensitivity=1; Vector3 strokeOrigin,strokeAnchor;
+        [Min(0)] public float startDragPixels=6;
+        bool strokeStarted;
         public RoadMapRuntime map;
         public RoadMarchSettings settings;
         public RoadRouteView preview;
@@ -41,9 +43,10 @@ namespace CampaignDemo
             { Cancel(); Debug.LogError("RoadMarchController: required references unavailable.",this); enabled=false; return; }
             if(drawing&&(planningArmy==null||planningArmy.Motor==null||!planningArmy.isActiveAndEnabled||!planningArmy.Motor.isActiveAndEnabled||planningArmy.Motor.MovementLocked)) { Cancel(); return; }
             if(!ModeEnabled) return;
+            if(selection.HasBoxSelection&&selection.SelectedArmies.Count>0){if(drawing)Cancel();return;}
             if(Input.GetMouseButton(1)) { if(drawing) Cancel(); return; }
             if(Input.GetKeyDown(KeyCode.Escape)) Cancel();
-            var raw=Input.mousePosition; var mouse=drawing?strokeOrigin+(raw-strokeOrigin)*Mathf.Clamp(planningSensitivity,.25f,2):raw;
+            var raw=Input.mousePosition; var mouse=drawing?strokeAnchor+(raw-strokeOrigin)*Mathf.Clamp(planningSensitivity,.25f,2):raw;
             bool blocked=raw.y>Screen.height-topInterfacePixels||
                 (EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject());
             var world=mapCamera.ScreenToWorldPoint(new Vector3(mouse.x,mouse.y,-mapCamera.transform.position.z));
@@ -59,19 +62,19 @@ namespace CampaignDemo
                 { Status="Start drawing near the selected army."; return; }
                 if(Selected.Motor==null||!Selected.isActiveAndEnabled||!Selected.Motor.isActiveAndEnabled||Selected.Motor.MovementLocked) { Status="Army movement is unavailable."; return; }
                 planningArmy=Selected;
-                strokeOrigin=raw; drawing=true; invalid=false; extended=false; planningArmy.PlanningPaused=true;
+                strokeOrigin=raw; strokeAnchor=p; strokeStarted=false; drawing=true; invalid=false; extended=false; planningArmy.PlanningPaused=true;
                 planningArmy.RefreshRoad();
-                draft.Clear(); tail=planningArmy.CurrentRoad; lastCursor=cursor;
+                draft.Clear(); tail=planningArmy.CurrentRoad; lastCursor=tail.Position;
                 var actual=planningArmy.transform.position;
                 RoadNetwork.Append(draft,new RoadPoint(actual.x,actual.y));
                 RoadNetwork.Append(draft,tail.Position); preview.SetColor(settings.validRouteColor); preview.ShowArrow(draft);
                 Status="Release to confirm. Esc cancels.";
             }
-            if(drawing&&Input.GetMouseButton(0))
+            if(drawing&&!Input.GetMouseButtonDown(0)&&Input.GetMouseButton(0))
             { if(blocked) Fail(); else if(!invalid) Sample(cursor,tolerance); }
             if(drawing&&Input.GetMouseButtonUp(0))
             {
-                if(blocked) Fail(); else if(!invalid) Sample(cursor,tolerance);
+                if(blocked) Fail(); else Sample(cursor,tolerance);
                 if(!invalid&&extended&&draft.Count>1)
                 { Status=SubmitRoute(planningArmy,draft)?"Route confirmed.":"Route blocked. Previous order retained."; }
                 else Status=invalid?"Invalid stroke. Previous order retained.":"Army selected. Draw a route.";
@@ -86,33 +89,24 @@ namespace CampaignDemo
         void Sample(RoadPoint cursor,double tolerance)
         {
             if(planningArmy==null||draft.Count==0) { Cancel(); return; }
-            double d=RoadPoint.Distance(lastCursor,cursor); if(d<0.015) return;
-            // Before reaching the road with the cursor, tolerate the approach section.
-            // This section is the only non-road part of a mode-1 route.
-            if(!extended&&!planningArmy.IsOnRoad)
+            // Ignore initial hand jitter; anchor the stroke to the army.
+            if(!strokeStarted)
             {
-                var at=planningArmy.transform.position;
-                var start=new RoadPoint(at.x,at.y);
-                double dx=tail.Position.X-start.X,dy=tail.Position.Y-start.Y;
-                double lengthSquared=dx*dx+dy*dy;
-                double t=lengthSquared<0.000001?1:((cursor.X-start.X)*dx+(cursor.Y-start.Y)*dy)/lengthSquared;
-                var closest=RoadPoint.Lerp(start,tail.Position,Math.Max(0,Math.Min(1,t)));
-                if(RoadPoint.Distance(cursor,closest)<=tolerance&&RoadPoint.Distance(cursor,tail.Position)>tolerance)
-                { lastCursor=cursor; return; }
-                // Once the cursor reaches the road it switches to normal road tracing.
-                d=Math.Max(d,RoadPoint.Distance(cursor,tail.Position));
+                var delta=Input.mousePosition-strokeOrigin; delta.z=0;
+                if(delta.sqrMagnitude<=startDragPixels*startDragPixels) return;
+                strokeStarted=true;
             }
-            RoadHit hit; List<RoadPoint> connector;
-            double limit=Math.Max(tolerance*2.5,d*settings.connectorMultiplier+tolerance);
-            if(!map.Network.Trace(tail,cursor,tolerance,limit,out hit,out connector)) { Fail(); return; }
+            double d=RoadPoint.Distance(lastCursor,cursor); if(d<0.015) return;
+            RoadHit hit;List<RoadPoint> connector;
+            if(!map.Network.SnapConnected(tail,cursor,out hit,out connector)){Fail();return;}
             if(RoadPoint.Distance(tail.Position,hit.Position)>0.015) extended=true;
             double scale=2*mapCamera.orthographicSize/Math.Max(1,mapCamera.pixelHeight);
             double turnTolerance=Math.Min(settings.snapPixels,Math.Max(0,settings.junctionTurnTolerancePixels))*scale;
             map.Network.AppendTurn(draft,connector,tail.Edge,hit.Edge,turnTolerance);
             if(planningArmy.waterMap!=null)for(int i=1;i<draft.Count;i++)if(!planningArmy.waterMap.CanTraverse(draft[i-1],draft[i])){preview.ShowArrow(draft);Fail();return;}
-            tail=hit; lastCursor=cursor; preview.ShowArrow(draft);
+            tail=hit; lastCursor=cursor; preview.SetColor(settings.validRouteColor); preview.ShowArrow(draft);
         }
-        void Fail() { invalid=true; preview.SetColor(settings.invalidRouteColor); Status="Too far from roads or road is disconnected."; }
+        void Fail() { invalid=true; preview.SetColor(settings.invalidRouteColor); Status="该路线包含不可通行地形或缺少道路连接。"; }
         void Finish()
         { if(planningArmy!=null) planningArmy.PlanningPaused=false; planningArmy=null; drawing=false; invalid=false; draft.Clear(); if(preview!=null) preview.Clear(); }
         void Cancel() { Finish(); Status="Draft cancelled. Previous order retained."; }

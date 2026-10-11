@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42da390fac3243a429c3d1766dd928d4, type: 3}
+  m_Name: CityProductionRules
+  m_EditorClassIdentifier: 
+  infantryPrefab: {fileID: 8636048241301599655, guid: 122916dced2ab75479e97a3780666619, type: 3}
+  additionalUnits:
+  - role: 1
+    prefab: {fileID: 133431993752077519, guid: 588b9a6eaaf439b4b8cf725c739d84d4, type: 3}
+    squadCost: 100
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  - role: 2
+    prefab: {fileID: 5404444603685187943, guid: b62e6ae26886f1d4b829da5af0f4964d, type: 3}
+    squadCost: 100
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  - role: 3
+    prefab: {fileID: 7575972494477004956, guid: 1c7ab25d922991542807157a400eb98d, type: 3}
+    squadCost: 100
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  - role: 4
+    prefab: {fileID: 8863490270163375422, guid: 410e0cf3dc3462d4fbdaa88411fb9ce4, type: 3}
+    squadCost: 100
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  - role: 5
+    prefab: {fileID: 2841242019070235750, guid: be43b0bcbdfaeb94ea570ea3fef05f08, type: 3}
+    squadCost: 100
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  - role: 7
+    prefab: {fileID: 489246446861296527, guid: b79e03e413b6435418bc4e5f95e7c642, type: 3}
+    squadCost: 100
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  infantrySquadCost: 100
+  infantrySquadSeconds: 30
+  infantryCostScale: 3.3
+  infantryTimeScale: 3
+  infantryRequiresFactory: 0
+  maximumQueuedPerCity: 5

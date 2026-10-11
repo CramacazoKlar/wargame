@@ -1,57 +1,64 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-
 namespace CampaignDemo {
- // Display-only deduplication. Full movement records and death markers stay intact.
+ // Display-only loop erasure. Each unit has its own index; raw movement is never edited.
  public static class ReplayTacticalCleanup {
-  struct Span {public Vector3 a,b;public Span(Vector3 start,Vector3 end){a=start;b=end;}}
-  public static void Build(ReplaySnapshot snapshot,float width) {
-   float tolerance=Mathf.Max(.01f,width*.85f),step=Mathf.Max(.02f,width*.5f),cell=tolerance*4;
-   var occupied=new Dictionary<long,List<Span>>();
-   for(int armyIndex=snapshot.armies.Count-1;armyIndex>=0;armyIndex--) {
-    var army=snapshot.armies[armyIndex];var output=new List<List<Vector3>>();
-    for(int routeIndex=army.tacticalRoutes.Count-1;routeIndex>=0;routeIndex--) {
-     var source=army.tacticalRoutes[routeIndex];var samples=new List<Vector3>();
-     if(source.Count==0)continue;samples.Add(source[0]);
-     for(int i=1;i<source.Count;i++){float length=Vector3.Distance(source[i-1],source[i]);if(length<.00001f)continue;int count=Mathf.Max(1,Mathf.CeilToInt(length/step));for(int j=1;j<=count;j++)samples.Add(Vector3.Lerp(source[i-1],source[i],(float)j/count));}
-     var keep=new bool[Mathf.Max(0,samples.Count-1)];
-     // Later traversals win within each unit, including a return along the same road.
-     for(int i=keep.Length-1;i>=0;i--){var span=new Span(samples[i],samples[i+1]);if(Overlaps(span,occupied,tolerance,cell))continue;keep[i]=true;Insert(span,occupied,tolerance,cell);}
-     List<Vector3> run=null;
-     for(int i=0;i<keep.Length;i++){if(!keep[i]){run=null;continue;}if(run==null){run=new List<Vector3>{samples[i]};output.Add(run);}Append(run,samples[i+1]);}
+  const double Epsilon=0.000001;
+  sealed class Edge {public Vector3 a,b;public int index;public bool alive=true;}
+  sealed class Index {
+   readonly double cell;readonly Dictionary<long,List<Edge>> buckets=new Dictionary<long,List<Edge>>();
+   public readonly List<Edge> edges=new List<Edge>();
+   public Index(IList<Vector3> points){float minX=points[0].x,maxX=minX,minY=points[0].y,maxY=minY;foreach(var p in points){minX=Math.Min(minX,p.x);maxX=Math.Max(maxX,p.x);minY=Math.Min(minY,p.y);maxY=Math.Max(maxY,p.y);}cell=Math.Max(.05,Math.Max(maxX-minX,maxY-minY)/64);}
+   IEnumerable<long> Cells(Vector3 a,Vector3 b){int x0=(int)Math.Floor((Math.Min(a.x,b.x)-Epsilon)/cell),x1=(int)Math.Floor((Math.Max(a.x,b.x)+Epsilon)/cell),y0=(int)Math.Floor((Math.Min(a.y,b.y)-Epsilon)/cell),y1=(int)Math.Floor((Math.Max(a.y,b.y)+Epsilon)/cell);for(int y=y0;y<=y1;y++)for(int x=x0;x<=x1;x++)yield return ((long)x<<32)^(uint)y;}
+   public void Add(Vector3 a,Vector3 b){var edge=new Edge{a=a,b=b,index=edges.Count};edges.Add(edge);foreach(long key in Cells(a,b)){if(!buckets.TryGetValue(key,out var list)){list=new List<Edge>();buckets.Add(key,list);}list.Add(edge);}}
+   public void Trim(int keep){for(int i=edges.Count-1;i>=keep;i--){edges[i].alive=false;edges.RemoveAt(i);}}
+   public IEnumerable<Edge> Query(Vector3 a,Vector3 b){var seen=new HashSet<Edge>();foreach(long key in Cells(a,b))if(buckets.TryGetValue(key,out var list))foreach(var edge in list)if(edge.alive&&seen.Add(edge))yield return edge;}
+  }
+  public static void Build(ReplaySnapshot snapshot,float width){
+   foreach(var army in snapshot.armies){var source=new List<List<Vector3>>();
+    foreach(var route in army.tacticalRoutes){if(route.Count==0)continue;if(source.Count>0&&Same(source[source.Count-1][source[source.Count-1].Count-1],route[0]))source[source.Count-1].AddRange(route);else source.Add(new List<Vector3>(route));}
+    army.tacticalRoutes.Clear();foreach(var route in source){var clean=EraseLoops(route);if(clean.Count>1)army.tacticalRoutes.Add(clean);}
+   }
+  }
+  public static List<Vector3> EraseLoops(IList<Vector3> source){
+   var input=new List<Vector3>();foreach(var p in source)Append(input,p);var path=new List<Vector3>();if(input.Count==0)return path;
+   var index=new Index(input);path.Add(input[0]);
+   for(int inputIndex=1;inputIndex<input.Count;inputIndex++){
+    var target=input[inputIndex];
+    while(!Same(path[path.Count-1],target)){
+     int count=path.Count;var from=path[count-1];
+     // Retracing the adjacent segment shortens it rather than keeping two overlapping strokes.
+     if(count>1){var previous=path[count-2];var direction=from-previous;double length=direction.sqrMagnitude;double cross=Cross(direction,target-from);double dot=Vector3.Dot(direction,target-from);
+      if(length>Epsilon*Epsilon&&Math.Abs(cross)<=Epsilon*Math.Sqrt(length)&&dot<0){double t=Vector3.Dot(target-previous,direction)/length;
+       index.Trim(count-2);path.RemoveAt(count-1);
+       if(t>0){path.Add(target);index.Add(previous,target);break;}continue;
+      }
+     }
+     Edge hit=null;double first=double.MaxValue;
+     foreach(var edge in index.Query(from,target)){if(edge.index>=count-2)continue;if(!Intersection(from,target,edge.a,edge.b,out double t))continue;
+      if(t<first-Epsilon||(Math.Abs(t-first)<=Epsilon&&(hit==null||edge.index<hit.index))){first=t;hit=edge;}
+     }
+     if(hit==null){path.Add(target);index.Add(from,target);break;}
+     var crossing=Vector3.Lerp(from,target,(float)first);int keep=hit.index+1;
+     index.Trim(hit.index);path.RemoveRange(keep,path.Count-keep);
+     if(!Same(path[path.Count-1],crossing)){var start=path[path.Count-1];path.Add(crossing);index.Add(start,crossing);}
+     // Continue the unconsumed segment; it may cross an earlier part again.
     }
-    army.tacticalRoutes.Clear();army.tacticalRoutes.AddRange(output);
-   }
+   }return path;
   }
-  // Each section keeps its starting heading as zero; small turns do not reset it.
+  static bool Intersection(Vector3 a,Vector3 b,Vector3 c,Vector3 d,out double t){
+   var u=b-a;var v=d-c;var w=c-a;double denominator=Cross(u,v);t=0;
+   if(Math.Abs(denominator)>Epsilon*Math.Sqrt((double)u.sqrMagnitude*v.sqrMagnitude)){double along=Cross(w,v)/denominator,other=Cross(w,u)/denominator;if(along<=Epsilon||along>1+Epsilon||other<-Epsilon||other>1+Epsilon)return false;t=Math.Max(0,Math.Min(1,along));return true;}
+   double length=u.sqrMagnitude;if(length<=Epsilon*Epsilon||Math.Abs(Cross(w,u))>Epsilon*Math.Sqrt(length))return false;
+   double s=Vector3.Dot(c-a,u)/length,e=Vector3.Dot(d-a,u)/length;double start=Math.Max(0,Math.Min(s,e)),end=Math.Min(1,Math.Max(s,e));if(end<start-Epsilon||end<=Epsilon)return false;t=start>Epsilon?start:end;return true;
+  }
+  static double Cross(Vector3 a,Vector3 b){return (double)a.x*b.y-(double)a.y*b.x;}
+  static bool Same(Vector3 a,Vector3 b){return (a-b).sqrMagnitude<Epsilon*Epsilon;}
+  static void Append(List<Vector3> points,Vector3 p){if(points.Count>0&&Same(points[points.Count-1],p))return;if(points.Count>1){var a=points[points.Count-2];var b=points[points.Count-1];var d=p-a;double length=d.sqrMagnitude;if(length>Epsilon*Epsilon){double t=Vector3.Dot(b-a,d)/length;if(t>=0&&t<=1&&Math.Abs(Cross(d,b-a))<=Epsilon*Math.Sqrt(length)){points[points.Count-1]=p;return;}}}points.Add(p);}
   public static void Polish(ReplaySnapshot snapshot,float width){foreach(var army in snapshot.armies)foreach(var route in army.tacticalRoutes)PolishRoute(route,width);}
-  public static void PolishRoute(List<Vector3> route,float width){
-   if(route.Count<3)return;
-   // Heading sections classify bends only; render the original curved route.
-   if(StraightSections(route).Count<3)return;
-   if(route.Count<3)return;
-   float length=0;for(int i=1;i<route.Count;i++)length+=Vector3.Distance(route[i-1],route[i]);
-   float remaining=length*.25f;int first=0;
-   while(first<route.Count-1){float leg=Vector3.Distance(route[first],route[first+1]);if(remaining<leg){route[first]=Vector3.MoveTowards(route[first],route[first+1],remaining);break;}remaining-=leg;first++;}
-   if(first>0)route.RemoveRange(0,first);
-  }
-  public static List<Vector3> StraightSections(IList<Vector3> route){
-   var result=new List<Vector3>();if(route.Count==0)return result;result.Add(route[0]);
-   Vector3 baseline=Vector3.zero;bool haveBaseline=false;
-   for(int i=1;i<route.Count;i++){var direction=route[i]-route[i-1];direction.z=0;if(direction.sqrMagnitude<.00000001f)continue;
-    if(!haveBaseline){baseline=direction.normalized;haveBaseline=true;continue;}
-    // Inclusive 30-degree threshold; retain the initial heading until a real split.
-    if(Vector3.Angle(baseline,direction)>30.0001f){var corner=route[i-1];if((result[result.Count-1]-corner).sqrMagnitude>.00000001f)result.Add(corner);baseline=direction.normalized;}
-   }
-   var end=route[route.Count-1];if((result[result.Count-1]-end).sqrMagnitude>.00000001f)result.Add(end);
-   return result;
-  }
-
-  static void Append(List<Vector3> points,Vector3 p){int n=points.Count;if(n>1){var a=points[n-2];var b=points[n-1];var d=p-a;float t=Vector3.Dot(b-a,d)/Mathf.Max(.00000001f,d.sqrMagnitude);if(t>=0&&t<=1&&(a+d*t-b).sqrMagnitude<.00000001f){points[n-1]=p;return;}}points.Add(p);}
-  static long Key(int x,int y){return ((long)x<<32)^(uint)y;}
-  static void Bounds(Span s,float margin,float cell,out int x0,out int x1,out int y0,out int y1){x0=Mathf.FloorToInt((Mathf.Min(s.a.x,s.b.x)-margin)/cell);x1=Mathf.FloorToInt((Mathf.Max(s.a.x,s.b.x)+margin)/cell);y0=Mathf.FloorToInt((Mathf.Min(s.a.y,s.b.y)-margin)/cell);y1=Mathf.FloorToInt((Mathf.Max(s.a.y,s.b.y)+margin)/cell);}
-  static void Insert(Span span,Dictionary<long,List<Span>> grid,float tolerance,float cell){Bounds(span,tolerance,cell,out int x0,out int x1,out int y0,out int y1);for(int x=x0;x<=x1;x++)for(int y=y0;y<=y1;y++){long key=Key(x,y);if(!grid.TryGetValue(key,out var list)){list=new List<Span>();grid.Add(key,list);}list.Add(span);}}
-  static bool Overlaps(Span s,Dictionary<long,List<Span>> grid,float tolerance,float cell){Bounds(s,0,cell,out int x0,out int x1,out int y0,out int y1);var d=s.b-s.a;float length=d.magnitude;if(length<.00001f)return true;var dir=d/length;for(int x=x0;x<=x1;x++)for(int y=y0;y<=y1;y++){if(!grid.TryGetValue(Key(x,y),out var spans))continue;foreach(var other in spans){var od=other.b-other.a;float ol=od.magnitude;if(ol<.00001f||Mathf.Abs(Vector3.Dot(dir,od/ol))<.97f)continue;float a=Vector3.Dot(other.a-s.a,dir),b=Vector3.Dot(other.b-s.a,dir);float overlap=Mathf.Min(length,Mathf.Max(a,b))-Mathf.Max(0,Mathf.Min(a,b));if(overlap<=Mathf.Min(length,ol)*.15f)continue;var mid=(other.a+other.b)*.5f;var normal=mid-s.a-dir*Vector3.Dot(mid-s.a,dir);if(normal.sqrMagnitude<=tolerance*tolerance)return true;}}return false;}
+  public static void PolishRoute(List<Vector3> route,float width){var smooth=ReplayDrawing.Round(route,Mathf.Max(.005f,width*.4f));route.Clear();route.AddRange(smooth);}
+  public static List<Vector3> StraightSections(IList<Vector3> route){return new List<Vector3>(route);}
+  public static bool DrawHead(ReplayArmy army,List<Vector3> route){for(int i=army.tacticalRoutes.Count-1;i>=0;i--)if(army.tacticalRoutes[i].Count>1)return ReferenceEquals(army.tacticalRoutes[i],route)&&Same(route[route.Count-1],army.finalPosition);return false;}
  }
 }

@@ -11,6 +11,7 @@ namespace CampaignDemo {
   public override int Priority {get{return responsePriority;}}
   enum Phase { Idle,Travelling,Entering,Repairing,Exiting,Returning }
   Phase phase;RecoveryPoint city;Vector3 startPosition;
+  public bool IsRecovering {get{return phase!=Phase.Idle;}}
   bool Safe(BattleAIController ai,RecoveryPoint point,List<ArmyInfo> contacts){if(point==null||point.ownerId!=ai.playerId||point.kind!=FacilityKind.RecoveryPoint||(point.resourcePerPerson>0&&point.resourceStock<=0))return false;foreach(var contact in contacts)if(Vector2.Distance(contact.position,point.transform.position)<=visibleDangerRadius)return false;return true;}
   bool LastGuard(BattleAIController ai,BattleUnit unit){if(!keepLastCityGuard)return false;foreach(var point in ai.world.points){if(point==null||point.ownerId!=ai.playerId||Vector2.Distance(unit.transform.position,point.transform.position)>point.captureRadius)continue;bool other=false;foreach(var u in ai.world.units)if(u!=null&&u!=unit&&u.ownerId==ai.playerId&&u.OnMap&&ai.world.campaign.CanAttack(u)&&Vector2.Distance(u.transform.position,point.transform.position)<=point.captureRadius){other=true;break;}if(!other)return true;}return false;}
   public override void CancelResponse(){base.CancelResponse();phase=Phase.Idle;city=null;}
@@ -29,7 +30,7 @@ namespace CampaignDemo {
    if(phase==Phase.Travelling){
     ResponseState="前往城市恢复";var battery=GetComponent<ArtilleryBattery>();if(battery!=null&&(battery.Deployed||battery.DeploymentRemaining>0)){if(battery.DeploymentRemaining<=0)Send(ai,order,new BattleCommand{kind=BattleCommandKind.ToggleArtilleryDeployment});return true;}
     if(unit.Working)return true;
-    if(Vector2.Distance(own.position,city.transform.position)<=city.interactionRadius){if(own.isMoving==true&&!Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement}))return true;if(Send(ai,order,new BattleCommand{kind=BattleCommandKind.EnterPoint,pointId=city.pointId}))phase=Phase.Entering;return true;}
+    if(Vector2.Distance(own.position,city.transform.position)<=UnitRanges.Interaction(unit)){if(own.isMoving==true&&!Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement}))return true;if(Send(ai,order,new BattleCommand{kind=BattleCommandKind.EnterPoint,pointId=city.pointId}))phase=Phase.Entering;return true;}
     if(!Safe(ai,city,contacts)){if(own.isMoving==true)Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement});phase=Phase.Idle;ResponseState="城市出现可见威胁，等待重新选择";retry=retrySeconds;Release(order);return false;}
     Move(ai,order,own,city.transform.position,useRoad);return true;
    }

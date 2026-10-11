@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c27dc027dd843a8498e01a514b3e4405, type: 3}
+  m_Name: BasicCityCommander
+  m_EditorClassIdentifier: 
+  attackCities: 1
+  recover: 1
+  produceResources: 1
+  transportResources: 1
+  recruitInfantry: 1
+  targetAttackStrength: 6
+  maximumArmyStrength: 60
+  maximumProductionJobs: 2
+  recruitmentEchelon: 0
+  infantryPrefab: {fileID: 8636048241301599655, guid: 122916dced2ab75479e97a3780666619, type: 3}
+  infantrySquadCost: 100
+  infantrySquadSeconds: 30
+  infantryCostScale: 3.3
+  infantryTimeScale: 3
+  infantryRequiresFactory: 0
+  enableCheats: 0
+  resourceIncomeMultiplier: 1
+  productionSpeedMultiplier: 1
+  omniscientEnemyIntel: 0
+  defenseRatio: 0.4
+  minimumCityDefense: 1
+  minimumAttackStrength: 3
+  deployHealth: 0.9
+  retreatHealth: 0.4
+  recoveryHealth: 0.9
+  squadRetreatRatio: 0.6
+  expectedLossRatio: 0.4
+  productionReserve: 100
+  preferRoad: 1
+  allowGroundFallback: 1
+  arrivalDistance: 0.12
+  gatheringSeconds: 15
+  targetRetrySeconds: 30
+  maximumCollectors: 2
+  economyInterval: 5
+  desiredCityStock: 500

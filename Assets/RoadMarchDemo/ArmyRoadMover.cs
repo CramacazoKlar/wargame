@@ -16,7 +16,15 @@ namespace CampaignDemo
         public bool PlanningPaused { get { return Motor!=null&&Motor.PlanningPaused; } set { if(Motor!=null) Motor.PlanningPaused=value; } }
         public RoadHit CurrentRoad { get; private set; }
         public bool IsOnRoad { get { return CurrentRoad.Distance<=0.01; } }
-        public float Speed { get { return 0.5f*Mathf.Max(0.01f,overrideSpeed||definition==null?speedOverride:definition.speed); } }
+        MapReferenceHUD distanceReference;
+        public float Speed { get {
+            if(!overrideSpeed&&definition!=null&&definition.useReferenceTravelTime){
+                if(distanceReference==null)distanceReference=FindObjectOfType<MapReferenceHUD>();
+                float meters=distanceReference!=null?distanceReference.metersPerWorldUnit:1000;
+                return ArmyDefinition.ReferenceRoadSpeed(definition.referenceDistanceMeters,definition.referenceTravelMinutes,meters,definition.roadSpeedRatio);
+            }
+            return 0.5f*Mathf.Max(0.01f,overrideSpeed||definition==null?speedOverride:definition.speed);
+        } }
         public bool IsMoving { get { return Motor!=null&&Motor.IsMoving; } }
         RoadNetwork network;
 

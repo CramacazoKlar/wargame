@@ -132,11 +132,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -13.497745
+      value: 2.98
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.09022558
+      value: -1.12
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.z
@@ -236,7 +236,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   task: {fileID: 11400000, guid: 2a5af17167ff0ac44bb82b051ebb7f17, type: 2}
   taskKey: 
-  profileOverride: {fileID: 0}
+  profileOverride: {fileID: 11400000, guid: ff18fdee81864154fa1d1c8067f83c30, type: 2}
   requiredUnits: []
   arrivalCity: {fileID: 0}
   life: 0
@@ -386,11 +386,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5.61203
+      value: -11.25
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.4466166
+      value: 1.62
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1508,11 +1508,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5.61203
+      value: 1.28
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.0466166
+      value: 0.36
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1612,7 +1612,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   task: {fileID: 11400000, guid: 2a5af17167ff0ac44bb82b051ebb7f17, type: 2}
   taskKey: 
-  profileOverride: {fileID: 0}
+  profileOverride: {fileID: 11400000, guid: ff18fdee81864154fa1d1c8067f83c30, type: 2}
   requiredUnits: []
   arrivalCity: {fileID: 0}
   life: 0
@@ -1630,11 +1630,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.9849625
+      value: -5.15
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.649624
+      value: 1.98
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1734,7 +1734,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   task: {fileID: 11400000, guid: 2a5af17167ff0ac44bb82b051ebb7f17, type: 2}
   taskKey: 
-  profileOverride: {fileID: 0}
+  profileOverride: {fileID: 11400000, guid: ff18fdee81864154fa1d1c8067f83c30, type: 2}
   requiredUnits: []
   arrivalCity: {fileID: 0}
   life: 0
@@ -2117,11 +2117,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -10.40625
+      value: -13.43
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.366165
+      value: -2.77
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2209,11 +2209,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.9849625
+      value: -11.87
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.049624
+      value: -0.72
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2833,11 +2833,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -13.497745
+      value: -13.24
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.3097744
+      value: 1.27
       objectReference: {fileID: 0}
     - target: {fileID: 1238172185996683725, guid: 3b902f7cdf93a1e47a50a88f1d8ed7aa, type: 3}
       propertyPath: m_LocalPosition.z
@@ -3309,6 +3309,10 @@ GameObject:
   - component: {fileID: 1148795115}
   - component: {fileID: 1148795114}
   - component: {fileID: 1148795113}
+  - component: {fileID: 1148795116}
+  - component: {fileID: 1148795117}
+  - component: {fileID: 1148795118}
+  - component: {fileID: 1148795119}
   m_Layer: 0
   m_Name: GameRoot
   m_TagString: Untagged
@@ -3637,7 +3641,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   world: {fileID: 1148795103}
-  profile: {fileID: 11400000, guid: 8c2c625bedd602248a651cc282d555e7, type: 2}
+  profile: {fileID: 11400000, guid: ff18fdee81864154fa1d1c8067f83c30, type: 2}
+  basicCommander: {fileID: 1148795116}
   reservations: {fileID: 1148795115}
   intel: {fileID: 1148795114}
   autoToggleOnPlayerSwitch: 1
@@ -3720,6 +3725,70 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2a24022d6e6abf41ac9104391a9560c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1148795116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1148795096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed3e22910facb7d4488ee80727614501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  controller: {fileID: 1148795111}
+  profile: {fileID: 11400000, guid: 86fcfdcddeeb0584fbe19ab1c930ca61, type: 2}
+  phase: 0
+  target: {fileID: 0}
+  status: "\u7B49\u5F85\u521D\u59CB\u5316"
+--- !u!114 &1148795117
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1148795096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ba31e8d61b75404c953360ee081e235, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  world: {fileID: 1148795103}
+  rules: {fileID: 11400000, guid: 2009901d3fd08ed4389efc796eaa7e68, type: 2}
+--- !u!114 &1148795118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1148795096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 214f0a53018fe1e4fb240cd30f46dfa8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  world: {fileID: 1148795103}
+--- !u!114 &1148795119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1148795096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cff49afe92319a748be9e7b55707e6bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  infantry: 1
+  scout: 1
+  artillery: 1
+  engineer: 1
+  tank: 1
+  personnelCarrier: 1
+  logistics: 1
+  mountainInfantry: 1
 --- !u!1 &1171698030
 GameObject:
   m_ObjectHideFlags: 0
@@ -3825,11 +3894,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -10.40625
+      value: -2.9
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.9661648
+      value: 1.91
       objectReference: {fileID: 0}
     - target: {fileID: 1072635708886843577, guid: 26070ab8bedb634498174e737cffbd77, type: 3}
       propertyPath: m_LocalPosition.z
@@ -3929,7 +3998,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   task: {fileID: 11400000, guid: 2a5af17167ff0ac44bb82b051ebb7f17, type: 2}
   taskKey: 
-  profileOverride: {fileID: 0}
+  profileOverride: {fileID: 11400000, guid: ff18fdee81864154fa1d1c8067f83c30, type: 2}
   requiredUnits: []
   arrivalCity: {fileID: 0}
   life: 0
@@ -4863,11 +4932,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3025461057080277746, guid: ebfe7aca06750f84ca1308fb809f5f65, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -10.40625
+      value: -12.41
       objectReference: {fileID: 0}
     - target: {fileID: 3025461057080277746, guid: ebfe7aca06750f84ca1308fb809f5f65, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.1661649
+      value: 1.55
       objectReference: {fileID: 0}
     - target: {fileID: 3025461057080277746, guid: ebfe7aca06750f84ca1308fb809f5f65, type: 3}
       propertyPath: m_LocalPosition.z

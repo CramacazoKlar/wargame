@@ -15,13 +15,13 @@ MonoBehaviour:
   mode2ReductionPercent: 0
   terrainReductions:
   - terrain: 0
-    reductionPercent: 70
+    reductionPercent: 60
   - terrain: 2
-    reductionPercent: 70
+    reductionPercent: 60
   - terrain: 6
-    reductionPercent: 19.999998
+    reductionPercent: 100
   - terrain: 3
     reductionPercent: 100
   - terrain: 1
     reductionPercent: 0
-  allowedTerrain: 71
+  allowedTerrain: 7

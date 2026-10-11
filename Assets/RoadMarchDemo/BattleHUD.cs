@@ -47,7 +47,7 @@ namespace CampaignDemo
             for(int i=0;i<3;i++){int index=i;var b=Button(rightPanel.transform,"",new Vector2(0,-185-i*36),new Vector2(244,30));b.onClick.AddListener(()=>SelectSlot(index));slots.Add(b);}
             var bottom=Panel("Army overview",transform,new Vector2(.5f,0),new Vector2(0,41),new Vector2(1280,82));
             statistics=Text(UI("Statistics",bottom.transform,new Vector2(.5f,.5f),new Vector2(0,13),new Vector2(1240,38)),"",16);
-            hint=Text(UI("Controls",bottom.transform,new Vector2(.5f,.5f),new Vector2(0,-22),new Vector2(1240,24)),"1 沿路行军  |  2 自由行军  |  3 查看与管理  |  WASD / 右键平移  |  滚轮缩放",15);
+            hint=Text(UI("Controls",bottom.transform,new Vector2(.5f,.5f),new Vector2(0,-22),new Vector2(1240,24)),"1 沿路行军  |  2 自由行军  |  3 查看与管理  |  WASD 平移 / 右键框选  |  滚轮缩放",15);
             var switchButton=Button(transform,"切换玩家",new Vector2(0,0),new Vector2(120,34));var sr=switchButton.GetComponent<RectTransform>();sr.anchorMin=sr.anchorMax=new Vector2(1,1);sr.anchoredPosition=new Vector2(-85,-25);switchButton.onClick.AddListener(world.NextPlayer);
             playerLabel=Text(UI("Player",transform,new Vector2(1,1),new Vector2(-220,-25),new Vector2(120,30)),"",17);
             foreach(var u in world.units)RegisterUnit(u);

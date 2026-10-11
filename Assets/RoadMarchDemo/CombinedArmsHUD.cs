@@ -55,7 +55,7 @@ namespace CampaignDemo
         {
             if(unit==null||!unit.OnMap||unit.Working||unit.Point!=null)return null;var role=unit.combatDefinition.role;if(role!=UnitRole.Infantry&&role!=UnitRole.MountainInfantry&&role!=UnitRole.Scout&&role!=UnitRole.Artillery&&role!=UnitRole.Engineer)return null;
             PersonnelCarrier best=null;float nearest=float.MaxValue;
-            foreach(var u in World.units)if(u!=null&&u.ownerId==unit.ownerId&&u.OnMap){var c=u.GetComponent<PersonnelCarrier>();if(c==null||c.Unit.Working||c.Unit.Point!=null||c.Used+Mathf.CeilToInt(unit.Personnel)>c.capacity)continue;float d=Vector2.Distance(unit.transform.position,c.transform.position);if(d<=c.boardingRadius&&d<nearest){nearest=d;best=c;}}return best;
+            foreach(var u in World.units)if(u!=null&&u.ownerId==unit.ownerId&&u.OnMap){var c=u.GetComponent<PersonnelCarrier>();if(c==null||c.Unit.Working||c.Unit.Point!=null||c.Used+Mathf.CeilToInt(unit.Personnel)>c.capacity)continue;float d=Vector2.Distance(unit.transform.position,c.transform.position);if(d<=UnitRanges.Interaction(unit)&&d<nearest){nearest=d;best=c;}}return best;
         }
         void Board(){var c=Nearby(hud.SelectedUnit);if(c!=null)Send(new BattleCommand{kind=BattleCommandKind.BoardCarrier,unitId=hud.SelectedUnit.unitId,targetUnitId=c.Unit.unitId});}
         void Update()
@@ -80,7 +80,7 @@ namespace CampaignDemo
             message.gameObject.SetActive(inspect);passengersPanel.SetActive(c!=null&&u.OnMap);
             vehicleEscape.gameObject.SetActive(c!=null&&u.OnMap&&u.State==ArmyBattleState.Engaged);
             bool canEnter=false;if(c!=null)foreach(var point in World.points)if(World.CanEnter(u,point)){canEnter=true;break;}vehicleEnter.gameObject.SetActive(c!=null&&canEnter);
-            foreach(var unit in World.units)if(unit!=null&&unit.GetComponent<PersonnelCarrier>()!=null){if(!boardingRanges.TryGetValue(unit,out var line)){line=Circle("运兵车上车范围");boardingRanges.Add(unit,line);}line.enabled=inspect&&unit.ownerId==World.currentPlayer&&unit.OnMap;if(line.enabled)Draw(line,unit.transform.position,unit.GetComponent<PersonnelCarrier>().boardingRadius,new Color(.4f,1,.45f));}
+            foreach(var unit in World.units)if(unit!=null&&unit.GetComponent<PersonnelCarrier>()!=null){if(!boardingRanges.TryGetValue(unit,out var line)){line=Circle("运兵车上车范围");boardingRanges.Add(unit,line);}line.enabled=inspect&&unit.ownerId==World.currentPlayer&&unit.OnMap;if(line.enabled)Draw(line,unit.transform.position,UnitRanges.Interaction(unit),new Color(.4f,1,.45f));}
             if(c!=null){var content=passengersPanel.GetComponent<ScrollRect>().content;while(passengerButtons.Count<c.Passengers.Count){int index=passengerButtons.Count;var b=Button(content,"",Vector2.zero,new Vector2(234,32),()=>Unload(index));passengerButtons.Add(b);}content.sizeDelta=new Vector2(240,Mathf.Max(235,c.Passengers.Count*38));
                 for(int i=0;i<passengerButtons.Count;i++){var b=passengerButtons[i];b.gameObject.SetActive(i<c.Passengers.Count);if(i>=c.Passengers.Count)continue;var rect=b.GetComponent<RectTransform>();rect.anchorMin=rect.anchorMax=new Vector2(.5f,1);rect.anchoredPosition=new Vector2(0,-20-i*38);b.GetComponentInChildren<Text>().text=c.Passengers[i].DisplayDesignation+" · 下车";}
             }

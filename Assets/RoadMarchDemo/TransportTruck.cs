@@ -33,7 +33,7 @@ namespace CampaignDemo
             if(sourceCollector!=null?(!sourceCollector.Alive||sourceCollector.ownerId!=u.ownerId):(sourceCity==null||sourceCity.ownerId!=u.ownerId)){StopAutomatic();Status="运输来源失效";return;}
             var motor=u.Motor;if(motor==null)return;if(motor.IsMoving||motor.PlanningPaused)return;
             var target=returning?(sourceCollector!=null?sourceCollector.transform:sourceCity.transform):destinationCity.transform;
-            float radius=returning?definition.loadingRadius:destinationCity.interactionRadius;
+            float radius=UnitRanges.Interaction(u);
             if(Vector2.Distance(transform.position,target.position)<=radius)
             {
                 if(returning){logistics.LoadAtSource(this);if(Cargo<=0){Status="等待资源";return;}returning=false;}

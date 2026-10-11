@@ -14,7 +14,7 @@ namespace CampaignDemo
         public AudioSource bgmSource;
         public AudioSource[] effectSources=new AudioSource[0];
         public float planningSensitivity=1;
-        float bgmVolume=.6f,effectsVolume=.8f;
+        float bgmVolume=.6f,effectsVolume=.8f,basePanSpeed=8;
         RoadMarchController road; FreeMarchController free;
         void Start()
         {
@@ -23,7 +23,8 @@ namespace CampaignDemo
             CreateWheelSetting();
             Bind(wheelSensitivitySlider,zoom==null?2:zoom.wheelSensitivity,SetWheelSensitivity);
             UpdateWheelLabel();
-            if(pan!=null)pan.mouseSensitivity=PlayerPrefs.GetFloat("Campaign.PanSensitivity",1);
+            if(pan!=null){basePanSpeed=pan.keyboardSpeed;SetPan(PlayerPrefs.GetFloat("Campaign.KeyboardPanMultiplier",1));}
+            if(settingsPanel!=null)foreach(var label in settingsPanel.GetComponentsInChildren<Text>(true))if(label.text=="Map pan sensitivity")label.text="WASD 平移速度";
             planningSensitivity=PlayerPrefs.GetFloat("Campaign.PlanningSensitivity",1);
             bgmVolume=PlayerPrefs.GetFloat("Campaign.BgmVolume",.6f);effectsVolume=PlayerPrefs.GetFloat("Campaign.EffectsVolume",.8f);
             Bind(panSlider,pan==null?1:pan.mouseSensitivity,SetPan);Bind(planningSlider,planningSensitivity,SetPlanning);
@@ -47,7 +48,7 @@ namespace CampaignDemo
         public void SetWheelSensitivity(float value){value=Mathf.Clamp(value,.5f,6);if(zoom!=null)zoom.wheelSensitivity=value;PlayerPrefs.SetFloat("Campaign.WheelSensitivity",value);UpdateWheelLabel();}
         void Bind(Slider s,float value,UnityEngine.Events.UnityAction<float> callback) { if(s==null)return;s.SetValueWithoutNotify(value);s.onValueChanged.AddListener(callback); }
         void Update() { if(road==null)road=GetComponent<RoadMarchController>();if(free==null)free=GetComponent<FreeMarchController>();if(road!=null)road.planningSensitivity=planningSensitivity;if(free!=null)free.planningSensitivity=planningSensitivity; }
-        public void SetPan(float v) { if(pan!=null)pan.SetMouseSensitivity(v); PlayerPrefs.SetFloat("Campaign.PanSensitivity",v); }
+        public void SetPan(float v) { v=Mathf.Clamp(v,.25f,2);if(pan!=null){pan.mouseSensitivity=v;pan.SetKeyboardSpeed(basePanSpeed*v);}PlayerPrefs.SetFloat("Campaign.KeyboardPanMultiplier",v); }
         public void SetPlanning(float v) { planningSensitivity=Mathf.Clamp(v,.25f,2);PlayerPrefs.SetFloat("Campaign.PlanningSensitivity",planningSensitivity); }
         public void SetBgm(float v) { bgmVolume=Mathf.Clamp01(v);PlayerPrefs.SetFloat("Campaign.BgmVolume",bgmVolume);ApplyAudio(); }
         public void SetEffects(float v) { effectsVolume=Mathf.Clamp01(v);PlayerPrefs.SetFloat("Campaign.EffectsVolume",effectsVolume);ApplyAudio(); }

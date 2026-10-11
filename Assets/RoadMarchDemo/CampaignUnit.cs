@@ -5,6 +5,7 @@ namespace CampaignDemo
     public sealed class CampaignUnit:MonoBehaviour
     {
         [Min(0)] public float desiredSpeed=100;
+        [System.NonSerialized] public float AttackRemaining;
         public Fortification fortTarget;
         public int fortBuildLevel;
         readonly Dictionary<BattleUnit,float> recentAttackers=new Dictionary<BattleUnit,float>();
