@@ -32,27 +32,27 @@ namespace CampaignDemo
             if(unit==null||!unit.Alive||unit.ownerId!=viewer)return CityActionQuote.No("单位不属于己方");
             if(Snapshot(city,viewer).garrison.Length>=city.capacity)return CityActionQuote.No("驻军位置已满");
             if(!world.CanEnter(unit,city))return CityActionQuote.No("当前不满足距离、状态或安全入城条件");
-            return CityActionQuote.Yes(0,city.transitionSeconds);
+            return CityActionQuote.Yes(0,0);
         }
         public CityActionQuote Repair(BattleUnit unit,RecoveryPoint city,string viewer)
         {
             var own=Owned(city,viewer);if(!own.allowed)return own;
             if(unit==null||!unit.Alive||unit.ownerId!=viewer||unit.Point!=city)return CityActionQuote.No("单位不在己方城市中");
-            if(unit.State==ArmyBattleState.Repairing)return CityActionQuote.Yes();
+            if(FacilityRecoveryQueue.For(world)?.Contains(unit)==true||unit.State==ArmyBattleState.Repairing)return CityActionQuote.Yes();
             if(unit.State!=ArmyBattleState.InsidePoint)return CityActionQuote.No("请等待入城完成");
             if(unit.Fraction>=1)return CityActionQuote.No("已经恢复至满编");
-            if(city.resourcePerPerson>0&&city.resourceStock<=0)return CityActionQuote.No("城市没有修复资源");
+            if(!LocalPrototypeOrders.EnabledFor(this)&&city.resourcePerPerson>0&&city.resourceStock<=0)return CityActionQuote.No("城市没有修复资源");
             return CityActionQuote.Yes((unit.Capacity-unit.Personnel)*city.resourcePerPerson,(1-unit.Fraction)/Mathf.Max(.001f,city.repairFractionPerSecond));
         }
         public CityActionQuote Exit(BattleUnit unit,RecoveryPoint city,string viewer)
         {
             var own=Owned(city,viewer);if(!own.allowed)return own;
-            return unit!=null&&unit.Alive&&unit.ownerId==viewer&&unit.Point==city&&(unit.State==ArmyBattleState.InsidePoint||unit.State==ArmyBattleState.Repairing)?CityActionQuote.Yes(0,city.transitionSeconds):CityActionQuote.No("请等待进出城完成");
+            return unit!=null&&unit.Alive&&unit.ownerId==viewer&&unit.Point==city&&(unit.State==ArmyBattleState.InsidePoint||unit.State==ArmyBattleState.Repairing)?CityActionQuote.Yes(0,LocalPrototypeOrders.EnabledFor(this)?0:city.transitionSeconds):CityActionQuote.No("请等待进出城完成");
         }
         public CityActionQuote Upgrade(RecoveryPoint city,string viewer)
         {
             var own=Owned(city,viewer);if(!own.allowed)return own;
-            if(Logistics==null)return CityActionQuote.No("建筑模块未配置");
+            if(city.isRepairSite)return CityActionQuote.No("修复点不能生产或升级兵工厂");if(Logistics==null)return CityActionQuote.No("建筑模块未配置");
             if(city.hasFactory)return CityActionQuote.No("兵工厂已建成");
             if(Logistics.IsBuilding(city))return CityActionQuote.No("城市正在生产或升级");
             if(Logistics.FactoryCount(viewer,true)>=Logistics.factoryLimitPerPlayer)return CityActionQuote.No("兵工厂数量已达上限");
@@ -62,7 +62,7 @@ namespace CampaignDemo
         public CityActionQuote Truck(RecoveryPoint city,string viewer,ArmyEchelon level)
         {
             var own=Owned(city,viewer);if(!own.allowed)return own;
-            if(!LevelUnitAvailability.Allowed(world,UnitRole.Logistics))return CityActionQuote.No("本关未开放资源车");
+            if(city.isRepairSite)return CityActionQuote.No("修复点不能生产单位");if(!LevelUnitAvailability.Allowed(world,UnitRole.Logistics))return CityActionQuote.No("本关未开放资源车");
             var prefab=Logistics==null?null:Logistics.truckPrefab;var truck=prefab==null?null:prefab.GetComponent<TransportTruck>();
             if(truck==null||truck.definition==null)return CityActionQuote.No("资源车预制体未配置");
             if(Logistics.IsBuilding(city))return CityActionQuote.No("城市生产位正在使用");
@@ -71,7 +71,7 @@ namespace CampaignDemo
         }
         public CityActionQuote ProductionQuote(RecoveryPoint city,string viewer,bool truck,ArmyEchelon level,int count,UnitRole role=UnitRole.Infantry)
         {
-            var quote=truck?Truck(city,viewer,level):Production==null?CityActionQuote.No("生产模块未配置"):Production.Quote(viewer,city,level,false,count,role);
+            if(city!=null&&city.isRepairSite)return CityActionQuote.No("修复点不能生产单位");var quote=truck?Truck(city,viewer,level):Production==null?CityActionQuote.No("生产模块未配置"):Production.Quote(viewer,city,level,false,count,role);
             if(!quote.allowed)
             {
                 var template=Logistics==null||Logistics.truckPrefab==null?null:Logistics.truckPrefab.GetComponent<TransportTruck>();

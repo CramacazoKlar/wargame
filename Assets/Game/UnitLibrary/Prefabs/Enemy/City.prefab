@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6492872551914226817}
   - component: {fileID: 764354726120710965}
   - component: {fileID: 6647950394866240492}
+  - component: {fileID: 1569746215832273966}
   m_Layer: 0
   m_Name: City
   m_TagString: Untagged
@@ -29,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.5581395, y: 0.68571424, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -75,12 +76,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 20
-  m_Sprite: {fileID: 21300000, guid: daff348c53f79b346bad07158cd9de39, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: e260684d18c685045bee70071f67674b, type: 3}
+  m_Color: {r: 0.5647059, g: 0.3254902, b: 0.25882354, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 0.5733333, y: 0.46666667}
+  m_DrawMode: 1
+  m_Size: {x: 0.98541677, y: 0.8020834}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -124,6 +125,21 @@ MonoBehaviour:
   transitionSeconds: 2
   capacity: 3
   repairFractionPerSecond: 0.02
-  resourceStock: 4000
-  resourcePerPerson: 1
+  resourceStock: 100000
+  resourcePerPerson: 100
   exitOffset: {x: 0.3, y: 0}
+--- !u!114 &1569746215832273966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6528878451637727477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ae1ef6d27170bb47913945b4053f3cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  diameterPixels: 24
+  captionOverride: 
+  objectiveNumber: 0

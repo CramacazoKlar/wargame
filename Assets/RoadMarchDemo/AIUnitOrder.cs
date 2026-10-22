@@ -1,7 +1,7 @@
 using UnityEngine;
 namespace CampaignDemo {
  public enum AITaskLife { Active,Completed,Cancelled,Failed }
- public enum AIUnitState { Waiting,Holding,Marching,Reacting,Engaging,Deploying,FireSupport,Failed,Unavailable,Responding }
+ public enum AIUnitState { Waiting,Holding,Marching,Reacting,Engaging,ReservedArtillerySetup,Bombarding,Failed,Unavailable,Responding }
  [RequireComponent(typeof(BattleUnit))]
  public sealed class AIUnitOrder:MonoBehaviour {
   public AITaskDefinition task;

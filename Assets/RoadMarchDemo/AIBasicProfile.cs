@@ -13,7 +13,7 @@ namespace CampaignDemo
         public ArmyEchelon recruitmentEchelon=ArmyEchelon.Squad;
         [HideInInspector] public GameObject infantryPrefab;
         [Header("制造测试值；正式数值仍可调整")]
-        [HideInInspector,Min(0)] public float infantrySquadCost=100;
+        [HideInInspector,Min(0)] public float infantrySquadCost=10000;
         [HideInInspector,Min(1)] public float infantrySquadSeconds=30;
         [HideInInspector,Min(1)] public float infantryCostScale=3.3f, infantryTimeScale=3;
         [HideInInspector] public bool infantryRequiresFactory=false;
@@ -25,11 +25,10 @@ namespace CampaignDemo
         [Min(0)] public float minimumCityDefense=1, minimumAttackStrength=3;
         [Range(0,1)] public float deployHealth=.9f, retreatHealth=.4f, recoveryHealth=.9f, squadRetreatRatio=.6f;
         [Range(0,1)] public float expectedLossRatio=.4f;
-        [Min(0)] public float productionReserve=100;
+        [Min(0)] public float productionReserve=10000;
         public bool preferRoad=true, allowGroundFallback=true;
         [Min(.01f)] public float arrivalDistance=.12f;
         [Min(1)] public float gatheringSeconds=15, targetRetrySeconds=30;
-        [Min(0)] public int maximumCollectors=2;
-        [Min(1)] public float economyInterval=5, desiredCityStock=500;
+        [Min(1)] public float economyInterval=5, desiredCityStock=50000;
     }
 }

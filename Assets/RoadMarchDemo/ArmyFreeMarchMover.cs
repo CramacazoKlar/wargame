@@ -24,6 +24,7 @@ namespace CampaignDemo
         {
             if(roadMover==null) roadMover=GetComponent<ArmyRoadMover>();
             float original=roadMover==null?0:roadMover.Speed;
+            if(LocalTacticalBattle.EnabledFor(this)&&terrain==TerrainKind.Road)return original;
             bool own=overrideSettings||definition==null;
             return TerrainSpeedRules.Calculate(original,own?mode2ReductionPercent:definition.mode2ReductionPercent,
                 TerrainSpeedRules.TerrainReduction(terrain,own?terrainReductions:definition.terrainReductions));

@@ -32,6 +32,7 @@ namespace CampaignDemo.Editor
             if(GUILayout.Button(painting?"Cancel polygon":"Paint polygon"))
             { painting=!painting; draft.Clear(); SceneView.RepaintAll(); }
             if(painting&&draft.Count>=3&&GUILayout.Button("Finish polygon")) Commit(root.definition);
+            if(GUILayout.Button("Frame map in Scene view")) SceneMapPreview.Frame(root.GetComponent<RoadMapRuntime>());
             if(GUILayout.Button("Edit regions / map bounds")) Selection.activeObject=root.definition;
         }
         static Color TerrainColor(TerrainKind kind){return kind==TerrainKind.Blocked?Color.red:kind==TerrainKind.HighMountain?new Color(.75f,.35f,1):kind==TerrainKind.Mountain?new Color(.8f,.55f,.25f):Color.green;}
@@ -45,21 +46,10 @@ namespace CampaignDemo.Editor
         }
         void OnSceneGUI()
         {
+            if(StaffMapAuthoringWindow.Controls((FreeMarchMapRuntime)target))return;
             if(Application.isPlaying) return;
             var root=(FreeMarchMapRuntime)target; var map=root.definition;
             if(map==null) return;
-            var roadMap=root.GetComponent<RoadMapRuntime>();
-            var background=roadMap==null?null:roadMap.definition;
-            if(background!=null&&background.background!=null)
-            {
-                var half=background.backgroundSize*0.5f;
-                var a=HandleUtility.WorldToGUIPoint(root.transform.TransformPoint(background.backgroundCenter+new Vector2(-half.x,half.y)));
-                var b=HandleUtility.WorldToGUIPoint(root.transform.TransformPoint(background.backgroundCenter+new Vector2(half.x,-half.y)));
-                var imageRect=Rect.MinMaxRect(Mathf.Min(a.x,b.x),Mathf.Min(a.y,b.y),Mathf.Max(a.x,b.x),Mathf.Max(a.y,b.y));
-                var spriteRect=background.background.textureRect; var texture=background.background.texture;
-                var uv=new Rect(spriteRect.x/texture.width,spriteRect.y/texture.height,spriteRect.width/texture.width,spriteRect.height/texture.height);
-                Handles.BeginGUI(); GUI.DrawTextureWithTexCoords(imageRect,texture,uv); Handles.EndGUI();
-            }
             var rect=map.bounds;
             Handles.color=Color.white;
             var corners=new[]{new Vector2(rect.xMin,rect.yMin),new Vector2(rect.xMax,rect.yMin),new Vector2(rect.xMax,rect.yMax),new Vector2(rect.xMin,rect.yMax)};

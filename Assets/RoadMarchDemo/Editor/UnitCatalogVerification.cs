@@ -17,10 +17,10 @@ public static class UnitCatalogVerification
         if(EditorApplication.timeSinceStartup-start>120)throw new Exception("Catalog test timeout");if(!EditorApplication.isPlaying||Time.time<1)return;var world=UnityEngine.Object.FindObjectOfType<BattleWorld>();if(world==null||!world.Initialized)return;
         world.enabled=false;var ai=world.GetComponent<BattleAIController>();ai.aiEnabled=false;var production=world.GetComponent<InfantryProduction>();production.enabled=false;
         var city=world.points.First(p=>p.ownerId=="A");city.hasFactory=true;city.resourceStock=100000;var options=world.GetComponent<LevelUnitAvailability>();
-        foreach(UnitRole role in Enum.GetValues(typeof(UnitRole)))Check(options.Allows(role),"default available: "+role);
+        foreach(UnitRole role in Enum.GetValues(typeof(UnitRole)))Check(options.Allows(role)==(role!=UnitRole.Radar),"default production availability: "+role);
         foreach(UnitRole role in Enum.GetValues(typeof(UnitRole)))
         {
-            if(role==UnitRole.Logistics)continue;int count=world.units.Length;
+            if(role==UnitRole.Radar||role==UnitRole.Logistics)continue;int count=world.units.Length;
             Check(production.Queue("A",city,ArmyEchelon.Squad,false,1,role),"queue configured role: "+role);
             production.Tick(production.Duration(ArmyEchelon.Squad,role)+1);
             Check(world.units.Length==count+1&&world.units.Last().combatDefinition.role==role&&world.units.Last().Alive&&world.units.Last().ownerId=="A","real unit spawned: "+role);

@@ -13,19 +13,23 @@ namespace CampaignDemo
         public IReadOnlyList<BattleUnit> Passengers {get{return passengers;}}
         public BattleUnit Unit {get{return GetComponent<BattleUnit>();}}
         public float Health {get{return Unit.Personnel;}}
+        public float BoardingRadius {get{return Mathf.Max(.01f,boardingRadius);}}
         public float Used {get{float n=0;foreach(var u in passengers)if(u!=null&&u.Alive)n+=u.Personnel;return n;}}
-        public float PassengerCapacity {get{return Unit.Campaign==null?capacity:Unit.Campaign.rules.At(Unit.Campaign.rules.passengerCapacity,Unit.combatDefinition.echelon)*Unit.Fraction;}}
+        public float PassengerCapacity {get{return Unit.Campaign==null?capacity:Unit.Campaign.rules.At(Unit.Campaign.rules.passengerCapacity,Unit.combatDefinition.echelon)*Unit.Fraction*TacticalDetachment.Scale(Unit);}}
         public void ApplyPassengerLoss(float before,float after){if(before<=0)return;float fraction=Mathf.Clamp01(after/before);foreach(var passenger in passengers)if(passenger!=null&&passenger.Alive)passenger.Damage(passenger.Personnel*(1-fraction));}
-        public float SpeedMultiplier {get{foreach(var u in passengers)if(u!=null&&u.Alive&&u.combatDefinition.role==UnitRole.Artillery)return 1-Mathf.Clamp(artilleryReductionPercent,0,100)/100;return 1;}}
+        public float SpeedMultiplier {get{foreach(var u in passengers)if(u!=null&&u.Alive&&ArtilleryBattery.IsArtilleryRole(u.combatDefinition.role))return 1-Mathf.Clamp(artilleryReductionPercent,0,100)/100;return 1;}}
+        public void ClearNetworkPassengers(){passengers.Clear();}
+        public void AddNetworkPassenger(BattleUnit unit){passengers.Add(unit);}
         public CommandResult Load(BattleUnit passenger)
         {
+            if(passenger!=null&&passenger.GetComponent<RadarInstallation>()!=null)return CommandResult.No("固定雷达不能装车");
             if(!Unit.OnMap||Unit.Working||Unit.Point!=null||passenger==null||!passenger.OnMap||passenger.ownerId!=Unit.ownerId||passenger==Unit||passenger.Working||passenger.Point!=null)return CommandResult.No("无法装载该部队");
             if(passenger.State!=ArmyBattleState.Deployed&&passenger.State!=ArmyBattleState.Engaged&&passenger.State!=ArmyBattleState.Escaping)return CommandResult.No("该部队正在切换状态");
             var role=passenger.combatDefinition.role;
-            if(role!=UnitRole.Infantry&&role!=UnitRole.MountainInfantry&&role!=UnitRole.Scout&&role!=UnitRole.Artillery&&role!=UnitRole.Engineer)return CommandResult.No("只能装载步兵（含山地步兵）、侦察兵、炮兵、工兵");
+            if(role!=UnitRole.Infantry&&role!=UnitRole.MountainInfantry&&role!=UnitRole.Scout&&!ArtilleryBattery.IsArtilleryRole(role)&&role!=UnitRole.Engineer)return CommandResult.No("只能装载步兵（含山地步兵）、侦察兵、炮兵、工兵");
             if(Used+passenger.Personnel>PassengerCapacity)return CommandResult.No("运兵车容量不足");
-            if(Vector2.Distance(transform.position,passenger.transform.position)>UnitRanges.Interaction(passenger))return CommandResult.No("部队距离运兵车太远");
-            var battery=passenger.GetComponent<ArtilleryBattery>();if(battery!=null&&battery.Deployed)return CommandResult.No("炮兵需先撤收再上车");if(passenger.Motor!=null)passenger.Motor.Stop();passenger.RevealForest();passenger.SetCarrier(this);passengers.Add(passenger);return CommandResult.Yes();
+            if(Vector2.Distance(transform.position,passenger.transform.position)>BoardingRadius)return CommandResult.No("部队距离运兵车太远");
+            if(passenger.Motor!=null)passenger.Motor.Stop();passenger.RevealForest();passenger.SetCarrier(this);passengers.Add(passenger);return CommandResult.Yes();
         }
         public CommandResult Unload(BattleUnit passenger,BattleWorld world)
         {

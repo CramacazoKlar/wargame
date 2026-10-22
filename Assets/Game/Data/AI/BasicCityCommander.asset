@@ -39,12 +39,11 @@ MonoBehaviour:
   recoveryHealth: 0.9
   squadRetreatRatio: 0.6
   expectedLossRatio: 0.4
-  productionReserve: 100
+  productionReserve: 10000
   preferRoad: 1
   allowGroundFallback: 1
   arrivalDistance: 0.12
   gatheringSeconds: 15
   targetRetrySeconds: 30
-  maximumCollectors: 2
   economyInterval: 5
-  desiredCityStock: 500
+  desiredCityStock: 50000

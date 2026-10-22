@@ -14,8 +14,15 @@ namespace CampaignDemo
         public void ConfigureArrow(RoadMarchSettings settings,Camera camera=null,bool overrideColor=true){arrowSettings=settings;arrowCamera=camera;useArrowColor=overrideColor;}
         public void ShowArrow(IList<RoadPoint> points,bool drawHead=true)
         {
-            float width=arrowSettings==null?.14f:arrowSettings.arrowShaftWidth,headWidth=arrowSettings==null?.30f:arrowSettings.arrowHeadWidth,headLength=arrowSettings==null?.28f:arrowSettings.arrowHeadLength;
-            var camera=arrowCamera!=null?arrowCamera:Camera.main;float units=camera!=null&&camera.orthographic?2*camera.orthographicSize/Mathf.Max(1,camera.pixelHeight):0;if(arrowSettings!=null){width=Mathf.Max(width,units*arrowSettings.minimumArrowShaftPixels);headWidth=Mathf.Max(headWidth,units*arrowSettings.minimumArrowHeadPixels);headLength=Mathf.Max(headLength,units*arrowSettings.minimumArrowHeadLengthPixels);}var contour=BuildArrowContour(points,width,headWidth,headLength,arrowPoints,arrowResult,arrowSpine,arrowLeft,arrowRight,drawHead);line.loop=arrowSettings==null||!arrowSettings.arrowOpenTail;line.numCornerVertices=0;line.numCapVertices=0;line.startWidth=line.endWidth=arrowSettings==null?.05f:arrowSettings.arrowStrokeWidth;if(arrowSettings!=null)line.startWidth=line.endWidth=Mathf.Max(line.startWidth,units*arrowSettings.minimumArrowStrokePixels);if(arrowSettings!=null&&useArrowColor)SetColor(arrowSettings.movementArrowColor);line.positionCount=contour.Count;if(contour.Count>0){if(arrowArray.Length!=contour.Count)arrowArray=new Vector3[contour.Count];contour.CopyTo(arrowArray);line.SetPositions(arrowArray);}
+            if(points==null||points.Count<2){Clear();return;}
+            var camera=arrowCamera!=null?arrowCamera:Camera.main;float units=camera!=null&&camera.orthographic?2*camera.orthographicSize/Mathf.Max(1,camera.pixelHeight):0;
+            var contour=ArrowContour(points,Mathf.Max(.14f,units*6),Mathf.Max(.30f,units*12),Mathf.Max(.28f,units*10),drawHead);
+            line.loop=false;line.numCornerVertices=0;line.numCapVertices=0;line.startWidth=line.endWidth=Mathf.Max(.025f,units*1.4f);if(useArrowColor)SetColor(StaffMapStyle.Blue);line.positionCount=contour.Count;line.SetPositions(contour.ToArray());
+        }
+        public static List<Vector3> StraightArrowContour(IList<RoadPoint> route,float width,float headWidth,float headLength,bool drawHead=true)
+        {
+            if(route==null||route.Count<2)return new List<Vector3>();
+            return ArrowContour(new[]{route[0],route[route.Count-1]},width,headWidth,headLength,drawHead);
         }
         public static List<Vector3> ArrowContour(IList<RoadPoint> route,float shaftWidth,float headWidth,float headLength,bool drawHead=true)
         {return BuildArrowContour(route,shaftWidth,headWidth,headLength,new List<Vector3>(),new List<Vector3>(),new List<Vector3>(),new List<Vector3>(),new List<Vector3>(),drawHead);}

@@ -19,7 +19,7 @@ MonoBehaviour:
   ordinaryDismantleSeconds: 15
   metersPerWorldUnit: 1000
   lineBuildSecondsPerMeter: 0.01
-  lineCostPerMeter: 0.1
+  lineCostPerMeter: 10
   lineDismantleSecondsPerMeter: 0.02
   lineHealthPerMeter: 0.1
   minimumLineWorldLength: 0.03

@@ -24,14 +24,14 @@ namespace CampaignDemo
             statistics=CreateText("Statistics",panel.transform,16);statistics.alignment=TextAnchor.UpperLeft;
             statistics.rectTransform.anchorMin=new Vector2(0,1);statistics.rectTransform.anchorMax=Vector2.one;
             statistics.rectTransform.offsetMin=new Vector2(12,-50);statistics.rectTransform.offsetMax=new Vector2(-12,-8);
-            controls=CreateText("Controls",panel.transform,14);var hint=controls;hint.text="1 沿路行军  |  2 自由行军  |  3 查看与管理  |  WASD 平移 / 右键框选  |  滚轮缩放";
+            controls=CreateText("Controls",panel.transform,14);var hint=controls;hint.text="Q 自动寻路  |  E 直线行军  |  1 对半 / 2 佯攻 / 3 渗透（再按确认） | R 巡逻 / K 轮换 / H 联防  |  WASD 平移 / 右键框选  |  滚轮缩放";
             hint.rectTransform.anchorMin=Vector2.zero;hint.rectTransform.anchorMax=new Vector2(1,0);hint.rectTransform.offsetMin=new Vector2(12,8);hint.rectTransform.offsetMax=new Vector2(-12,30);
             Refresh();
         }
         Text CreateText(string name,Transform parent,int size)
         {
             var obj=new GameObject(name,typeof(RectTransform),typeof(Text));obj.transform.SetParent(parent,false);
-            var text=obj.GetComponent<Text>();text.font=font;text.fontSize=size;text.color=new Color(.95f,.87f,.68f);
+            var text=obj.GetComponent<Text>();text.font=font;text.fontSize=size;text.color=StaffMapStyle.Ink;
             text.alignment=TextAnchor.MiddleLeft;text.raycastTarget=false;text.resizeTextForBestFit=true;text.resizeTextMinSize=8;text.resizeTextMaxSize=size;return text;
         }
         void Update(){Refresh();}
@@ -43,7 +43,7 @@ namespace CampaignDemo
             OverviewPanel.gameObject.SetActive(world.setup!=null&&world.setup.modes!=null&&world.setup.modes.CurrentMode==MouseCommandMode.Interaction);
             if(!OverviewPanel.gameObject.activeSelf)return;
             statistics.text=BattleTextFormatter.Overview(world.GetComponent<BattleInformationSource>().GetOverview(world.currentPlayer));
-            var selection=world.GetComponent<ArmySelection>();var group=world.GetComponent<GroupMarchController>();controls.text="1 沿路  |  2 自由行军  |  3 管理  |  WASD 平移  |  右键框选  |  滚轮缩放"+(selection!=null&&selection.HasBoxSelection?"   已选 "+selection.SelectedArmies.Count+" 支  "+(group==null?"":group.Status):"");
+            var selection=world.GetComponent<ArmySelection>();var group=world.GetComponent<GroupMarchController>();controls.text="1 沿路  |  2 直线行军  |  3 侧翼 / 4 佯攻 / 5 穿插 / V 管理  |  WASD 平移  |  右键框选  |  滚轮缩放"+(selection!=null&&selection.HasBoxSelection?"   已选 "+selection.SelectedArmies.Count+" 支  "+(group==null?"":group.Status):"");
         }
         void OnDisable(){if(OverviewPanel!=null)OverviewPanel.gameObject.SetActive(false);}
         void OnDestroy(){if(OverviewPanel!=null)Destroy(OverviewPanel.gameObject);}

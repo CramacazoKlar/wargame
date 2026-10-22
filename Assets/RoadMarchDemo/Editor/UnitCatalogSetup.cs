@@ -16,7 +16,7 @@ public static class UnitCatalogSetup
         var entries=rules.additionalUnits.ToList();
         foreach(UnitRole role in Enum.GetValues(typeof(UnitRole)))
         {
-            if(role==UnitRole.Infantry||role==UnitRole.Logistics||entries.Any(e=>e!=null&&e.role==role))continue;
+            if(role==UnitRole.Radar||role==UnitRole.Infantry||role==UnitRole.Logistics||entries.Any(e=>e!=null&&e.role==role))continue;
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/UnitLibrary/Prefabs/Enemy/"+role+"_Squad.prefab");if(prefab==null)throw new Exception("Missing prefab "+role);
             entries.Add(new CityProductionRules.Entry{role=role,prefab=prefab,squadCost=rules.infantrySquadCost,squadSeconds=rules.infantrySquadSeconds,costScale=rules.infantryCostScale,timeScale=rules.infantryTimeScale,requiresFactory=rules.infantryRequiresFactory});
         }

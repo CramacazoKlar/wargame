@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eba659e73b8052c4589a233bae6ad555, type: 3}
+  m_Name: Roads
+  m_EditorClassIdentifier: 
+  background: {fileID: 21300000, guid: 17031bb2c14ae4844a04a05c00ea7df2, type: 3}
+  backgroundSize: {x: 32, y: 20}
+  backgroundCenter: {x: 0, y: 0}
+  nodes:
+  - {x: -15, y: 8}
+  - {x: -10, y: 4}
+  - {x: -14, y: 1}
+  - {x: -4, y: 2}
+  - {x: 2, y: 2.6}
+  - {x: 11, y: 4}
+  - {x: 15, y: 8}
+  - {x: -14, y: -7}
+  - {x: -7, y: -4}
+  - {x: 0, y: -5}
+  - {x: 11, y: -5.5}
+  - {x: 15, y: -7}
+  connections:
+  - a: 0
+    b: 1
+  - a: 1
+    b: 2
+  - a: 1
+    b: 3
+  - a: 3
+    b: 4
+  - a: 4
+    b: 5
+  - a: 5
+    b: 6
+  - a: 2
+    b: 8
+  - a: 7
+    b: 8
+  - a: 8
+    b: 9
+  - a: 9
+    b: 10
+  - a: 10
+    b: 11
+  - a: 5
+    b: 10
+  spawnNodes: 
+  spawnPositions: []
+  showRoads: 0
+  roadWidth: 0.24
+  roadColor: {r: 0.9, g: 0.86, b: 0.72, a: 1}

@@ -5,9 +5,9 @@ namespace CampaignDemo
     // Values only: querying information does not create UI or depend on a mouse mode.
     public sealed class PlayerOverviewInfo
     {
-        public string playerId;public int unitCount,cityCount,enemyCityCount,factoryCount,collectorCount,personnelLimit,factoryPendingCount,factoryLimit;
-        public float personnel,nominalPersonnel,cityResources,collectorResources,transportResources,ownAreaPercent,enemyAreaPercent,neutralAreaPercent;
-        public float TotalResources {get{return cityResources+collectorResources+transportResources;}}
+        public string playerId;public int unitCount,cityCount,enemyCityCount,factoryCount,personnelLimit,factoryPendingCount,factoryLimit;
+        public float personnel,nominalPersonnel,cityResources,transportResources,ownAreaPercent,enemyAreaPercent,neutralAreaPercent;
+        public float TotalResources {get{return cityResources+transportResources;}}
     }
     public sealed class ArmyInfo
     {
@@ -25,26 +25,20 @@ namespace CampaignDemo
     }
     public sealed class TransportInfo
     {
-        public string unitId,status,sourceCollectorId,sourceCityId,destinationCityId;public float cargo,capacity;public bool automatic;
+        public string unitId,status,sourceCityId,destinationCityId;public float cargo,capacity;public bool automatic;
     }
-    public sealed class CollectorInfo
-    {
-        public string collectorId,siteId,ownerId;public Vector3 position;public bool own,alive,visible;
-        public float health,maxHealth;public float? stock,storageLimit,collectionInterval,amountPerInterval;
-    }
+    
     public sealed class ResourceSiteInfo {public string siteId,name;public Vector3 position;public Vector2 areaSize;}
     public interface IPlayerBattleInformation
     {
         PlayerOverviewInfo GetOverview(string viewer);
         string[] GetVisibleArmyIds(string viewer,bool includeOwnStationed=false);
         string[] GetFacilityIds(string viewer);
-        string[] GetOwnedCollectorIds(string viewer);
         ResourceSiteInfo[] GetResourceSites(string viewer);
         ArmyInfo GetArmy(string viewer,string unitId);
         Vector2[] GetOwnRoute(string viewer,string unitId);
         FacilityInfo GetFacility(string viewer,string pointId);
         TransportInfo GetTransport(string viewer,string unitId);
-        CollectorInfo GetCollector(string viewer,string collectorId);
     }
     [DefaultExecutionOrder(110)]
     public sealed class BattleInformationSource : MonoBehaviour,IPlayerBattleInformation
@@ -58,26 +52,24 @@ namespace CampaignDemo
         {var ids=new List<string>();if(!Player(viewer))return ids.ToArray();foreach(var u in world.units)if(u!=null&&u.Alive&&(world.IsVisible(viewer,u)||(includeOwnStationed&&u.ownerId==viewer)))ids.Add(u.unitId);return ids.ToArray();}
         public string[] GetFacilityIds(string viewer)
         {var ids=new List<string>();if(!Player(viewer))return ids.ToArray();foreach(var p in world.points)if(p!=null)ids.Add(p.pointId);return ids.ToArray();}
-        public string[] GetOwnedCollectorIds(string viewer)
-        {var ids=new List<string>();if(!Player(viewer)||logistics==null)return ids.ToArray();foreach(var c in logistics.collectors)if(c!=null&&c.Alive&&c.ownerId==viewer)ids.Add(c.collectorId);return ids.ToArray();}
+        
         public ResourceSiteInfo[] GetResourceSites(string viewer)
         {var sites=new List<ResourceSiteInfo>();if(!Player(viewer)||logistics==null)return sites.ToArray();foreach(var s in logistics.sites)if(s!=null)sites.Add(new ResourceSiteInfo{siteId=s.siteId,name=s.displayName,position=s.transform.position,areaSize=s.areaSize});return sites.ToArray();}
         public PlayerOverviewInfo GetOverview(string viewer)
         {
             if(!Player(viewer))return null;var info=new PlayerOverviewInfo{playerId=viewer,personnelLimit=world.personnelLimit};
-            foreach(var u in world.units)if(u!=null&&u.Alive&&u.ownerId==viewer){info.unitCount++;info.personnel+=world.campaign!=null&&world.campaign.Vehicle(u)?world.campaign.rules.At(world.campaign.rules.transportEquivalents,u.combatDefinition.echelon)*u.Fraction:u.Personnel;info.nominalPersonnel+=world.campaign!=null&&world.campaign.Vehicle(u)?world.campaign.rules.At(world.campaign.rules.transportEquivalents,u.combatDefinition.echelon):u.Capacity;var t=u.GetComponent<TransportTruck>();if(t!=null)info.transportResources+=t.Cargo;}
-            foreach(var p in world.points)if(p!=null){if(p.ownerId==viewer){info.cityResources+=p.resourceStock;if(p.kind==FacilityKind.RecoveryPoint){info.cityCount++;if(p.hasFactory)info.factoryCount++;}else if(p.kind==FacilityKind.Factory)info.factoryCount++;else info.collectorCount++;}else if(!string.IsNullOrEmpty(p.ownerId)&&p.kind==FacilityKind.RecoveryPoint)info.enemyCityCount++;}
+            foreach(var u in world.units)if(u!=null&&u.Alive&&u.ownerId==viewer){info.unitCount++;info.personnel+=world.campaign!=null&&world.campaign.Vehicle(u)?world.campaign.rules.At(world.campaign.rules.transportEquivalents,u.combatDefinition.echelon)*u.Fraction*TacticalDetachment.Scale(u):u.Personnel;info.nominalPersonnel+=world.campaign!=null&&world.campaign.Vehicle(u)?world.campaign.rules.At(world.campaign.rules.transportEquivalents,u.combatDefinition.echelon)*TacticalDetachment.Scale(u):u.Capacity;var t=u.GetComponent<TransportTruck>();if(t!=null)info.transportResources+=t.Cargo;}
+            foreach(var p in world.points)if(p!=null){if(p.ownerId==viewer){info.cityResources+=p.resourceStock;if(p.kind==FacilityKind.RecoveryPoint){info.cityCount++;if(p.hasFactory)info.factoryCount++;}else if(p.kind==FacilityKind.Factory)info.factoryCount++;}else if(!string.IsNullOrEmpty(p.ownerId)&&p.kind==FacilityKind.RecoveryPoint)info.enemyCityCount++;}
             if(logistics!=null){info.factoryPendingCount=Mathf.Max(0,logistics.FactoryCount(viewer,true)-logistics.FactoryCount(viewer));info.factoryLimit=logistics.factoryLimitPerPlayer;}
-            if(logistics!=null)foreach(var c in logistics.collectors)if(c!=null&&c.Alive&&c.ownerId==viewer){info.collectorCount++;info.collectorResources+=c.Stock;}
             info.ownAreaPercent=world.territory==null?0:world.territory.Percent(viewer);info.enemyAreaPercent=world.territory==null?0:world.territory.Percent(viewer,true);info.neutralAreaPercent=Mathf.Max(0,100-info.ownAreaPercent-info.enemyAreaPercent);return info;
         }
         public ArmyInfo GetArmy(string viewer,string id)
         {
             if(!Player(viewer))return null;var u=Unit(id);if(u==null)return null;bool own=u.ownerId==viewer;bool visible=world.IsVisible(viewer,u);if(!own&&!visible)return null;
             bool known=world.IsKnown(viewer,u);var info=new ArmyInfo{unitId=id,ownerId=u.ownerId,own=own,visible=visible,known=known,alive=u.Alive,onMap=u.OnMap,position=u.transform.position};
-            if(known&&u.combatDefinition!=null){info.unitType=u.combatDefinition.unitType;info.echelon=u.combatDefinition.echelon;info.personnelPercent=u.Fraction*100;}
+            if(known&&u.combatDefinition!=null){info.unitType=u.combatDefinition.unitType;info.echelon=u.combatDefinition.echelon;info.personnelPercent=u.StrengthFraction*100;}
             if(!own)return info;
-            info.isPersonnelCarrier=u.GetComponent<PersonnelCarrier>()!=null;info.canMove=u.CanMove;var motor=u.Motor;info.isMoving=motor!=null&&motor.IsMoving;info.currentSpeed=motor==null?0:motor.CurrentSpeed;info.movementMode=motor==null?(MouseCommandMode?)null:motor.MovementMode;info.designation=u.DisplayDesignation;info.personnel=u.Personnel;info.capacity=u.Capacity;info.strengthPercent=(world.campaign==null?CombatMath.Strength(u.Fraction):u.Fraction)*100;info.state=u.State;info.hidden=u.HiddenInForest;info.ambushEnabled=u.ForestAttackEnabled;info.visionRadius=u.combatDefinition.visionRadius;info.attackRadius=u.combatDefinition.attackRadius;info.isTransport=u.GetComponent<TransportTruck>()!=null;
+            info.isPersonnelCarrier=u.GetComponent<PersonnelCarrier>()!=null;info.canMove=u.CanMove;var motor=u.Motor;info.isMoving=motor!=null&&motor.IsMoving;info.currentSpeed=motor==null?0:motor.CurrentSpeed;info.movementMode=motor==null?(MouseCommandMode?)null:motor.MovementMode;info.designation=u.DisplayDesignation;info.personnel=u.Personnel;info.capacity=u.StrengthCapacity;info.strengthPercent=CombatMath.Strength(u.StrengthFraction)*100;info.state=u.State;info.hidden=u.HiddenInForest;info.ambushEnabled=u.ForestAttackEnabled;info.visionRadius=u.combatDefinition.visionRadius;info.attackRadius=UnitRanges.Attack(u);info.isTransport=u.GetComponent<TransportTruck>()!=null;
             if(u.Point!=null){info.pointId=u.Point.pointId;info.pointName=u.Point.displayName;}info.remainingSeconds=u.State==ArmyBattleState.Repairing&&u.Point!=null?(1-u.Fraction)/Mathf.Max(.001f,u.Point.repairFractionPerSecond):u.StateTimer;
             info.canEscape=world.campaign==null&&u.State==ArmyBattleState.Engaged;foreach(var p in world.points)if(world.CanEnter(u,p)){info.canEnter=true;info.entryPointId=p.pointId;break;}
             bool inside=u.State==ArmyBattleState.InsidePoint||u.State==ArmyBattleState.Repairing;info.canRepair=inside&&u.Fraction<1;info.canExit=inside;info.canHide=u.HiddenInForest||(u.OnMap&&!u.Working&&u.State==ArmyBattleState.Deployed&&u.combatDefinition.canHideInForest&&world.InForest(u));info.canToggleAmbush=u.HiddenInForest;return info;
@@ -91,12 +83,9 @@ namespace CampaignDemo
         }
         public TransportInfo GetTransport(string viewer,string id)
         {
-            var u=Unit(id);if(!Player(viewer)||u==null||u.ownerId!=viewer||!u.Alive)return null;var t=u.GetComponent<TransportTruck>();if(t==null)return null;return new TransportInfo{unitId=id,status=t.Status,cargo=t.Cargo,capacity=t.Capacity,automatic=t.Automatic,sourceCollectorId=t.sourceCollector==null?null:t.sourceCollector.collectorId,sourceCityId=t.sourceCity==null?null:t.sourceCity.pointId,destinationCityId=t.destinationCity==null?null:t.destinationCity.pointId};
+            var u=Unit(id);if(!Player(viewer)||u==null||u.ownerId!=viewer||!u.Alive)return null;var t=u.GetComponent<TransportTruck>();if(t==null)return null;return new TransportInfo{unitId=id,status=t.Status,cargo=t.Cargo,capacity=t.Capacity,automatic=t.Automatic,sourceCityId=t.sourceCity==null?null:t.sourceCity.pointId,destinationCityId=t.destinationCity==null?null:t.destinationCity.pointId};
         }
-        public CollectorInfo GetCollector(string viewer,string id)
-        {
-            if(!Player(viewer)||logistics==null)return null;foreach(var c in logistics.collectors)if(c!=null&&c.collectorId==id){bool own=c.ownerId==viewer;bool visible=c.Alive&&(own||!world.fogEnabled||world.VisibleAt(viewer,c.transform.position));if(!own&&!visible)return null;var info=new CollectorInfo{collectorId=id,siteId=c.site==null?null:c.site.siteId,ownerId=c.ownerId,position=c.transform.position,own=own,alive=c.Alive,visible=visible,health=c.Health,maxHealth=c.settings.health};if(own){info.stock=c.Stock;info.storageLimit=c.settings.storageLimit;info.collectionInterval=c.settings.collectionInterval;info.amountPerInterval=c.settings.amountPerInterval;}return info;}return null;
-        }
+        
     }
 }
 

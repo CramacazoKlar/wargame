@@ -7,6 +7,10 @@ namespace CampaignDemo
         [Min(0)] public float desiredSpeed=100;
         [System.NonSerialized] public float AttackRemaining;
         public Fortification fortTarget;
+        readonly Dictionary<string,long> contactOrder=new Dictionary<string,long>();long nextContact;
+        public void SyncContactOrder(IList<string> targets){var active=new HashSet<string>(targets);foreach(var key in new List<string>(contactOrder.Keys))if(!active.Contains(key))contactOrder.Remove(key);foreach(var key in targets)if(!contactOrder.ContainsKey(key))contactOrder[key]=nextContact++;}
+        public long ContactPriority(string id){return contactOrder.TryGetValue(id,out var order)?order:long.MaxValue;}
+        public void ClearContactOrder(){contactOrder.Clear();nextContact=0;}
         public int fortBuildLevel;
         readonly Dictionary<BattleUnit,float> recentAttackers=new Dictionary<BattleUnit,float>();
         readonly HashSet<BattleUnit> observedAttackers=new HashSet<BattleUnit>();
@@ -16,7 +20,7 @@ namespace CampaignDemo
         public void BeginCombatObservation(){observedAttackers.Clear();}
         public void ObserveAttack(BattleUnit attacker)
         {if(attacker==null||attacker.ownerId==Unit.ownerId)return;recentAttackers[attacker]=0;observedAttackers.Add(attacker);}
-        public void ResetRetreatEncounter(){recentAttackers.Clear();observedAttackers.Clear();retreatMotion.Clear();retreatCharged=false;RetreatCharges=0;}
+        public void ResetRetreatEncounter(){ClearContactOrder();recentAttackers.Clear();observedAttackers.Clear();retreatMotion.Clear();retreatCharged=false;RetreatCharges=0;}
         public void ResolveRetreatMovement(float dt,CampaignRules rules){bool first=true;foreach(var sample in retreatMotion){ResolveRetreat(first?dt:0,rules,sample.z,new Vector2(sample.x,sample.y));first=false;}if(first)ResolveRetreat(dt,rules,Moving?Unit.Motor.CurrentSpeed:0,HasFacing?Facing:Vector2.zero);retreatMotion.Clear();}
         public float ResolveRetreat(float dt,CampaignRules rules,float actualSpeed,Vector2 direction)
         {

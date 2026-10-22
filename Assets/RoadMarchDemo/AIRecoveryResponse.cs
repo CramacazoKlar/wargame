@@ -28,7 +28,7 @@ namespace CampaignDemo {
    }
    if(city==null||city.ownerId!=ai.playerId){if(own.isMoving==true)Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement});phase=Phase.Idle;ResponseState="目标城市易主，取消恢复";retry=retrySeconds;Release(order);return false;}
    if(phase==Phase.Travelling){
-    ResponseState="前往城市恢复";var battery=GetComponent<ArtilleryBattery>();if(battery!=null&&(battery.Deployed||battery.DeploymentRemaining>0)){if(battery.DeploymentRemaining<=0)Send(ai,order,new BattleCommand{kind=BattleCommandKind.ToggleArtilleryDeployment});return true;}
+    ResponseState="前往城市恢复";
     if(unit.Working)return true;
     if(Vector2.Distance(own.position,city.transform.position)<=UnitRanges.Interaction(unit)){if(own.isMoving==true&&!Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement}))return true;if(Send(ai,order,new BattleCommand{kind=BattleCommandKind.EnterPoint,pointId=city.pointId}))phase=Phase.Entering;return true;}
     if(!Safe(ai,city,contacts)){if(own.isMoving==true)Send(ai,order,new BattleCommand{kind=BattleCommandKind.StopMovement});phase=Phase.Idle;ResponseState="城市出现可见威胁，等待重新选择";retry=retrySeconds;Release(order);return false;}
@@ -37,7 +37,7 @@ namespace CampaignDemo {
    if(phase==Phase.Entering){ResponseState="等待入城";if(own.state==ArmyBattleState.InsidePoint)phase=Phase.Repairing;else return true;}
    if(phase==Phase.Repairing){
     ResponseState="消耗城市资源恢复";
-    if(unit.Fraction>=Mathf.Max(seekRecoveryBelow,returnAbove)||(city.resourcePerPerson>0&&city.resourceStock<=0)){if(Send(ai,order,new BattleCommand{kind=BattleCommandKind.ExitPoint}))phase=Phase.Exiting;return true;}
+    if(unit.Fraction>=UnitExperience.RecoveryTarget(unit,Mathf.Max(seekRecoveryBelow,returnAbove))||(city.resourcePerPerson>0&&city.resourceStock<=0)){if(Send(ai,order,new BattleCommand{kind=BattleCommandKind.ExitPoint}))phase=Phase.Exiting;return true;}
     if(own.state==ArmyBattleState.InsidePoint)Send(ai,order,new BattleCommand{kind=BattleCommandKind.ToggleRepair});return true;
    }
    if(phase==Phase.Exiting){ResponseState="等待出城";if(!own.onMap)return true;phase=Phase.Returning;Release(order);}

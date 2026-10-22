@@ -18,8 +18,8 @@ MonoBehaviour:
   echelonRatio: 3
   fullStrengthAttack: 18
   defense: 20
-  visionRadius: 3.5
-  attackRadius: 1.05
+  visionRadius: 1.75
+  attackRadius: 0.525
   squadHealth: 7
   incomingDamageFactor: 1
   attackIntervalSeconds: 1

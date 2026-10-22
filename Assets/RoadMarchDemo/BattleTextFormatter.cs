@@ -8,7 +8,7 @@ namespace CampaignDemo
         public static string Echelon(ArmyEchelon e){return new[]{"班","排","连","营","团","旅","师","军"}[(int)e];}
         public static string State(ArmyBattleState state){return new[]{"地图行动","交战","逃跑","进入据点","驻点","恢复中","出点","被消灭"}[(int)state];}
         public static string Overview(PlayerOverviewInfo s)
-        {if(s==null)return "";return "我方区域 "+s.ownAreaPercent.ToString("0.0")+"%   敌方区域 "+s.enemyAreaPercent.ToString("0.0")+"%   中立 "+s.neutralAreaPercent.ToString("0.0")+"%   敌方据点 "+s.enemyCityCount+"\n资源 "+s.TotalResources.ToString("0")+"   部队 "+s.unitCount+"   人数 "+Mathf.CeilToInt(s.personnel)+"   编制 "+Mathf.CeilToInt(s.nominalPersonnel)+" / "+s.personnelLimit+"   据点 "+s.cityCount+"   兵工厂 "+s.factoryCount+"   采矿器 "+s.collectorCount;}
+        {if(s==null)return "";return "我方区域 "+s.ownAreaPercent.ToString("0.0")+"%   敌方区域 "+s.enemyAreaPercent.ToString("0.0")+"%   中立 "+s.neutralAreaPercent.ToString("0.0")+"%   敌方据点 "+s.enemyCityCount+"\n资源 "+s.TotalResources.ToString("0")+"   部队 "+s.unitCount+"   人数 "+Mathf.CeilToInt(s.personnel)+"   编制 "+Mathf.CeilToInt(s.nominalPersonnel)+" / "+s.personnelLimit+"   据点 "+s.cityCount+"   兵工厂 "+s.factoryCount;}
         public static string Army(ArmyInfo s)
         {
             if(s==null)return "没有可查看的军队信息";
@@ -20,7 +20,7 @@ namespace CampaignDemo
         }
         public static string Facility(FacilityInfo s)
         {
-            if(s==null)return "没有可查看的据点信息";string text=s.name+"\n类型："+(s.kind==FacilityKind.RecoveryPoint?"占领 / 恢复据点":s.kind==FacilityKind.Factory?"兵工厂":"采矿器")+"\n归属："+(s.observed?(string.IsNullOrEmpty(s.ownerId)?"中立":s.ownerId):"未知");if(!s.own)return text;text+="\n物资："+s.stock.Value.ToString("0")+"\n收纳上限："+s.capacity.Value+"\n内部部队不能攻击或防守";if(s.capturePercent.HasValue)text+="\n占领进度："+Mathf.RoundToInt(s.capturePercent.Value)+"%";return text;
+            if(s==null)return "没有可查看的据点信息";string text=s.name+"\n类型："+(s.kind==FacilityKind.RecoveryPoint?"占领 / 恢复据点":s.kind==FacilityKind.Factory?"兵工厂":"资源点")+"\n归属："+(s.observed?(string.IsNullOrEmpty(s.ownerId)?"中立":s.ownerId):"未知");if(!s.own)return text;text+="\n物资："+s.stock.Value.ToString("0")+"\n收纳上限："+s.capacity.Value+"\n内部部队不能攻击或防守";if(s.capturePercent.HasValue)text+="\n占领进度："+Mathf.RoundToInt(s.capturePercent.Value)+"%";return text;
         }
     }
 }

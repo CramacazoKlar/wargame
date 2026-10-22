@@ -49,5 +49,5 @@ MonoBehaviour:
   spawnNodes: 000000000400000008000000
   spawnPositions: []
   showRoads: 1
-  roadWidth: 0.12
+  roadWidth: 0.5
   roadColor: {r: 0.47, g: 0.35, b: 0.22, a: 1}

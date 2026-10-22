@@ -18,6 +18,7 @@ namespace CampaignDemo
         [Min(.001f)] public float minimumLineWorldLength=.03f;
         [Min(.001f)] public float drawingSampleWorldDistance=.03f;
         [Min(2)] public int maximumLinePoints=512;
+        [Min(.01f)] public float maximumLineWorldLength=4;
         [Min(.001f)] public float parapetSpacing=.15f,parapetDepth=.08f;
         [Header("军事地图防线外观，不影响防御宽度")][Min(.001f)] public float lineVisualWidth=.06f,lineOutlineWidth=.10f;
         public Color lineColor=Color.black,lineOutlineColor=new Color(.12f,.10f,.07f);

@@ -21,8 +21,6 @@ public static class UnitPrefabBuilder {
    var sprite=Crop(sheet,id,cx-68,cy-64,136,108,new Vector2(.5f,44f/108));
    (side==0?catalog.friendly:catalog.enemy)[row*5+grade]=sprite;
   }
-  catalog.friendlyCollector=Crop(sheet,"Friendly_Collector",150,1150,136,90,new Vector2(.5f,.5f));
-  catalog.enemyCollector=Crop(sheet,"Enemy_Collector",1050,1150,136,90,new Vector2(.5f,.5f));
   catalog.friendlyCity=Crop(sheet,"Friendly_City",175,1275,86,70,new Vector2(.5f,.5f));
   catalog.enemyCity=Crop(sheet,"Enemy_City",1075,1275,86,70,new Vector2(.5f,.5f));
   AssetDatabase.CreateAsset(catalog,"Assets/Resources/UnitSymbols.asset");
@@ -44,17 +42,16 @@ public static class UnitPrefabBuilder {
    }
   }
   var rules=Load<CampaignRules>("Assets/Game/Data/Campaign/CampaignRules.asset");
-  for(int side=0;side<2;side++)for(int kind=0;kind<2;kind++){
-   var g=new GameObject((side==0?"己方_":"敌方_")+(kind==0?"采集器":"城市"));var r=g.AddComponent<SpriteRenderer>();r.sortingOrder=8;r.color=Color.white;r.sprite=kind==0?(side==0?catalog.friendlyCollector:catalog.enemyCollector):(side==0?catalog.friendlyCity:catalog.enemyCity);
+  for(int side=0;side<2;side++)for(int kind=1;kind<2;kind++){
+   var g=new GameObject((side==0?"己方_":"敌方_")+"城市");var r=g.AddComponent<SpriteRenderer>();r.sortingOrder=8;r.color=Color.white;r.sprite=side==0?catalog.friendlyCity:catalog.enemyCity;
    g.AddComponent<UnitSymbolIdentity>().catalog=catalog;
-   if(kind==0){var c=g.AddComponent<ResourceCollector>();c.ownerId=side==0?"A":"B";c.settings.health=rules.collectorHealth;c.settings.collectionInterval=rules.collectorInterval;c.settings.amountPerInterval=rules.collectorBatch;c.settings.buildCost=rules.collectorBuildCost;c.settings.footprint=rules.collectorFootprint;c.unlimitedStorage=true;}
-   else{var p=g.AddComponent<RecoveryPoint>();p.ownerId=side==0?"A":"B";p.displayName=g.name;p.kind=FacilityKind.RecoveryPoint;}
-   PrefabUtility.SaveAsPrefabAsset(g,Root+"/Prefabs/"+(side==0?"Friendly/":"Enemy/")+(kind==0?"Collector":"City")+".prefab");UnityEngine.Object.DestroyImmediate(g);
+   {var p=g.AddComponent<RecoveryPoint>();p.ownerId=side==0?"A":"B";p.displayName=g.name;p.kind=FacilityKind.RecoveryPoint;}
+   PrefabUtility.SaveAsPrefabAsset(g,Root+"/Prefabs/"+(side==0?"Friendly/":"Enemy/")+"City"+".prefab");UnityEngine.Object.DestroyImmediate(g);
   }
   var scene=EditorSceneManager.OpenScene("Assets/Scenes/Battle01.unity");
   foreach(var u in UnityEngine.Object.FindObjectsOfType<BattleUnit>()){var i=u.GetComponent<UnitSymbolIdentity>();if(i==null)i=u.gameObject.AddComponent<UnitSymbolIdentity>();i.catalog=catalog;var r=u.GetComponent<SpriteRenderer>();r.sprite=catalog.Unit(u.combatDefinition.role,u.combatDefinition.echelon,u.ownerId=="A");r.color=Color.white;u.transform.localScale=Vector3.one;EditorUtility.SetDirty(u);}
   foreach(var p in UnityEngine.Object.FindObjectsOfType<RecoveryPoint>()){var i=p.GetComponent<UnitSymbolIdentity>();if(i==null)i=p.gameObject.AddComponent<UnitSymbolIdentity>();i.catalog=catalog;var r=p.GetComponent<SpriteRenderer>();if(r!=null){r.sprite=p.ownerId=="A"?catalog.friendlyCity:catalog.enemyCity;r.color=Color.white;}}
-  var logistics=UnityEngine.Object.FindObjectOfType<LogisticsWorld>();logistics.collectorSprite=catalog.friendlyCollector;logistics.truckPrefab=Load<GameObject>(Root+"/Prefabs/Friendly/TransportTruck_Company.prefab");
+  var logistics=UnityEngine.Object.FindObjectOfType<LogisticsWorld>();logistics.truckPrefab=Load<GameObject>(Root+"/Prefabs/Friendly/TransportTruck_Company.prefab");
   EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();AssetDatabase.Refresh();Verify();
  }
  static ArmyDefinition Movement(int row){return Load<ArmyDefinition>(row==0?"Assets/Game/Data/Infantry.asset":row==3?"Assets/Game/Data/Tank.asset":row==7?"Assets/Game/Data/Logistics/TruckMovement.asset":"Assets/Game/Data/CombinedArms/"+Names[row]+"Movement.asset");}

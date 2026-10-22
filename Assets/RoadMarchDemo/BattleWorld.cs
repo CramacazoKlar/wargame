@@ -26,6 +26,7 @@ namespace CampaignDemo
         public TerritoryControlSystem territory;
         public PlayerIntelStore Intel { get; private set; }=new PlayerIntelStore();
         public event Action<CombatEffectEvent> CombatEffectOccurred;
+        public void NotifyUnitHit(BattleUnit source,string sourceOwner,BattleUnit target){UnitExperience.RecordHit(source,sourceOwner,target);GetComponent<LocalCoordinatedOrders>()?.NotifyHit(source,target,sourceOwner);}
         public void NotifyCombatEffect(CombatEffectEvent effect){if(SimulationEnded)return;var listeners=CombatEffectOccurred;if(listeners==null)return;foreach(Action<CombatEffectEvent> listener in listeners.GetInvocationList()){try{listener(effect);}catch(Exception exception){Debug.LogException(exception,this);}}}
         public event Action PlayerChanged;
         public event Action<BattleUnit> UnitRegistered;
@@ -43,18 +44,18 @@ namespace CampaignDemo
             if(setup==null)setup=GetComponent<RoadMarchSceneSetup>();
             if(units==null||points==null||setup==null)throw new ArgumentException("BattleWorld: assign setup, units and points.");
             if(campaign==null)campaign=GetComponent<CampaignRuntime>();if(campaign!=null){campaign.Bind();if(campaign.rules==null)throw new ArgumentException("Assign Campaign Rules");}
-            var ids=new HashSet<string>();foreach(var u in units){if(u==null)throw new ArgumentException("Null battle unit");if(string.IsNullOrEmpty(u.unitId)||!ids.Add(u.unitId))throw new ArgumentException("Unique unit IDs required");if(Array.IndexOf(players,u.ownerId)<0)throw new ArgumentException("Unit owner must be a configured player: "+u.name);if(campaign!=null)campaign.ConfigureUnit(u);u.Initialize();var info=u.GetComponent<ArmyTacticalInfo>();if(info!=null){info.ownerId=u.ownerId;info.visionRadius=u.combatDefinition.visionRadius;info.attackRadius=u.combatDefinition.attackRadius;}var v=u.GetComponent<BattleUnitView>();if(v==null)v=u.gameObject.AddComponent<BattleUnitView>();v.Initialize();}
+            var ids=new HashSet<string>();foreach(var u in units){if(u==null)throw new ArgumentException("Null battle unit");if(string.IsNullOrEmpty(u.unitId)||!ids.Add(u.unitId))throw new ArgumentException("Unique unit IDs required");if(Array.IndexOf(players,u.ownerId)<0)throw new ArgumentException("Unit owner must be a configured player: "+u.name);if(campaign!=null)campaign.ConfigureUnit(u);u.Initialize();var info=u.GetComponent<ArmyTacticalInfo>();if(info!=null){info.ownerId=u.ownerId;info.visionRadius=u.combatDefinition.visionRadius;info.attackRadius=UnitRanges.Attack(u);}var v=u.GetComponent<BattleUnitView>();if(v==null)v=u.gameObject.AddComponent<BattleUnitView>();v.Initialize();}
             if(territory!=null){territory.world=this;territory.Initialize();}
-            Initialized=true;BattleServices.Ensure(this);Replay=GetComponent<BattleReplayRecorder>();if(Replay==null)Replay=gameObject.AddComponent<BattleReplayRecorder>();Replay.Initialize(this);var replayControls=GetComponent<BattleReplayControls>();if(replayControls==null)replayControls=gameObject.AddComponent<BattleReplayControls>();replayControls.world=this;
+            Initialized=true;LocalOpeningGarrison.Apply(this);if(GetComponent<MergedMovementArrows>()==null)gameObject.AddComponent<MergedMovementArrows>();if(GetComponent<OpeningCameraFocus>()==null)gameObject.AddComponent<OpeningCameraFocus>();BattleServices.Ensure(this);Replay=GetComponent<BattleReplayRecorder>();if(Replay==null)Replay=gameObject.AddComponent<BattleReplayRecorder>();Replay.Initialize(this);
         }
         void Update()
-        { if(!Initialized||SimulationEnded)return;accumulator+=Time.deltaTime;float dt=Mathf.Max(.02f,simulationStep);while(accumulator>=dt){Tick(dt);accumulator-=dt;} }
+        { if(!Initialized||SimulationEnded||!LocalPvpSession.Simulate)return;accumulator+=Time.deltaTime;float dt=Mathf.Max(.02f,simulationStep);while(accumulator>=dt){Tick(dt);accumulator-=dt;} }
         public void Tick(float dt)
         {
-            if(!Initialized||SimulationEnded)return;dt=Mathf.Max(0,dt);Replay?.Advance(dt);
+            if(!Initialized||SimulationEnded||!LocalPvpSession.Simulate)return;dt=Mathf.Max(0,dt);Replay?.Advance(dt);if(LocalPvpSession.Active!=null){foreach(var movingUnit in units)if(movingUnit!=null&&movingUnit.Motor!=null)movingUnit.Motor.Tick(dt);GetComponent<InfantryProduction>()?.Tick(dt);}
             foreach(var u in units)if(u!=null&&u.Alive){u.AdvanceTimer(dt);if(u.HiddenInForest&&!InForest(u))u.RevealForest();}
             ResolveForestContact();
-            if(campaign!=null)campaign.Tick(dt);else ResolveCombat(dt);ResolvePoints(dt);AdvancePointUnits(dt);if(territory!=null)territory.Resolve();
+            if(campaign!=null)campaign.Tick(dt);else ResolveCombat(dt);ResolvePoints(dt);FacilityRecoveryQueue.For(this)?.Before();AdvancePointUnits(dt);FacilityRecoveryQueue.For(this)?.After();UnitExperience.TickWorld(this);GetComponent<LocalCoordinatedOrders>()?.Tick(dt);if(territory!=null)territory.Resolve();
         }
         void ResolveCombat(float dt)
         {
@@ -70,8 +71,8 @@ namespace CampaignDemo
                     if(d>range*range)continue;
                     if(d<nearest||(d==nearest&&target!=null&&string.CompareOrdinal(candidate.unitId,target.unitId)<0)){nearest=d;target=candidate;}
                 }
-                if(target==null){var logistics=GetComponent<LogisticsWorld>();if(logistics!=null&&logistics.AttackCollector(attacker,dt)){engaged.Add(attacker);forestShooters.Add(attacker);}continue;}
-                float damage=CombatMath.Damage(attacker.combatDefinition.fullStrengthAttack,attacker.Fraction,target.combatDefinition.defense,dt);
+                if(target==null)continue;
+                float damage=CombatMath.Damage(attacker.combatDefinition.fullStrengthAttack,attacker.StrengthFraction,target.combatDefinition.defense*CombatMath.Strength(target.StrengthFraction),dt);
                 if(damage<=0)continue;
                 if(!pendingDamage.ContainsKey(target))pendingDamage.Add(target,0);pendingDamage[target]+=damage;
                 engaged.Add(attacker);forestShooters.Add(attacker);if(target.State!=ArmyBattleState.Escaping)engaged.Add(target);
@@ -88,7 +89,8 @@ namespace CampaignDemo
         {
             foreach(var point in points)
             {
-                if(point==null||point.kind==FacilityKind.Mine)continue;localCounts.Clear();
+                if(point==null||point.kind==FacilityKind.Mine)continue;
+                if(point.kind==FacilityKind.RecoveryPoint){point.CapturingPlayer=null;point.CaptureProgress=0;foreach(var entrant in units)if(entrant!=null&&!(LocalPrototypeOrders.EnabledFor(this)&&(entrant.GetComponent<TransportTruck>()!=null||GetComponent<LocalPrototypeOrders>()!=null&&GetComponent<LocalPrototypeOrders>().IsAssigned(entrant)))&&entrant.OnMap&&entrant.ownerId!=point.ownerId&&entrant.Motor!=null&&!entrant.Motor.IsMoving&&(entrant.transform.position-point.transform.position).sqrMagnitude<=point.captureRadius*point.captureRadius)EnterPointNow(entrant,point);continue;}localCounts.Clear();
                 foreach(var u in units)if(u!=null&&u.OnMap&&(u.transform.position-point.transform.position).sqrMagnitude<=point.captureRadius*point.captureRadius)
                 { if(!localCounts.ContainsKey(u.ownerId))localCounts.Add(u.ownerId,0);localCounts[u.ownerId]+=u.Personnel; }
                 string winner=null;float high=0;bool tie=false;
@@ -114,8 +116,8 @@ namespace CampaignDemo
                 else if(u.State==ArmyBattleState.Repairing)
                 {
                     float wanted=Mathf.Min(u.Capacity-u.Personnel,u.Capacity*p.repairFractionPerSecond*dt);
-                    float available=p.resourcePerPerson<=0?wanted:Mathf.Min(wanted,p.resourceStock/p.resourcePerPerson);
-                    u.Restore(available);p.resourceStock=Mathf.Max(0,p.resourceStock-available*p.resourcePerPerson);
+                    var payer=LocalPrototypeOrders.EnabledFor(this)?FacilityRecoveryQueue.ResourcePool(this,p):p;float available=p.resourcePerPerson<=0?wanted:Mathf.Min(wanted,payer.resourceStock/p.resourcePerPerson);
+                    u.Restore(available);payer.resourceStock=Mathf.Max(0,payer.resourceStock-available*p.resourcePerPerson);
                     if(u.Fraction>=.999999f||available<wanted)u.CancelRepair();
                 }
             }
@@ -124,11 +126,18 @@ namespace CampaignDemo
         { foreach(var u in units)if(u!=null&&u.OnMap&&u.ownerId!=p.ownerId&&(u.transform.position-p.transform.position).sqrMagnitude<=p.captureRadius*p.captureRadius)return true;return false; }
         public bool CanEnter(BattleUnit u,RecoveryPoint p)
         {
-            if(u!=null&&campaign!=null&&u.UnderFire)return false;
-            if(u==null||p==null||p.kind!=FacilityKind.RecoveryPoint||!u.CanMove||p.ownerId!=u.ownerId||EnemiesNear(p))return false;
+            if(u==null||p==null||p.kind!=FacilityKind.RecoveryPoint||!u.CanMove||HasEntryDefenders(u,p))return false;
             if((u.transform.position-p.transform.position).sqrMagnitude>UnitRanges.Interaction(u)*UnitRanges.Interaction(u))return false;
-            int count=0;foreach(var other in units)if(other!=null&&other.Alive&&other.Point==p)count++;
+            int count=0;foreach(var other in units)if(other!=null&&other.Alive&&other.Point==p&&other.ownerId==u.ownerId)count++;
             return count<p.capacity;
+        }
+        bool HasEntryDefenders(BattleUnit entrant,RecoveryPoint point)
+        {foreach(var unit in units)if(unit!=null&&unit.OnMap&&unit.ownerId!=entrant.ownerId&&(unit.transform.position-point.transform.position).sqrMagnitude<=point.captureRadius*point.captureRadius)return true;return false;}
+        public bool EnterPointNow(BattleUnit unit,RecoveryPoint point)
+        {
+            if(!CanEnter(unit,point))return false;
+            if(point.ownerId!=unit.ownerId){foreach(var previous in units)if(previous!=null&&previous.Alive&&previous.Point==point&&previous.ownerId!=unit.ownerId)previous.Eliminate();point.ownerId=unit.ownerId;}
+            point.CapturingPlayer=null;point.CaptureProgress=0;bool entered=unit.BeginEnter(point);if(entered)Intel.Reset(unit);return entered;
         }
         public bool InForest(BattleUnit u)
         {return u!=null&&setup!=null&&setup.freeMarchMap!=null&&setup.freeMarchMap.IsForest(new RoadPoint(u.transform.position.x,u.transform.position.y));}
@@ -139,7 +148,7 @@ namespace CampaignDemo
         {if(!Inspection||u==null||u.ownerId!=currentPlayer)return false;if(u.HiddenInForest){u.RevealForest();return true;}return CanHide(u)&&u.HideInForest();}
         public bool RequestForestAttack(BattleUnit u,bool enabled)
         {return Inspection&&u!=null&&u.ownerId==currentPlayer&&InForest(u)&&u.SetForestAttack(enabled);}
-        public bool RequestEnter(BattleUnit u,RecoveryPoint p) { return u!=null&&u.ownerId==currentPlayer&&CanEnter(u,p)&&u.BeginEnter(p); }
+        public bool RequestEnter(BattleUnit u,RecoveryPoint p) { return u!=null&&u.ownerId==currentPlayer&&EnterPointNow(u,p); }
         public bool RequestEscape(BattleUnit u) { return u!=null&&u.ownerId==currentPlayer&&u.Escape(escapeLossFraction,escapeGraceSeconds); }
         // Vision alone cannot reveal forest concealment; ordinary weapon contact can.
         public static bool WithinContactRange(Vector3 a,Vector3 b,float range)
@@ -149,7 +158,7 @@ namespace CampaignDemo
             if(u==null||!u.OnMap||u.Working||u.combatDefinition==null||u.combatDefinition.attackRadius<=0)return false;
             if(u.State!=ArmyBattleState.Deployed&&u.State!=ArmyBattleState.Engaged)return false;
             if(campaign!=null)return campaign.CanAttack(u);
-            return u.combatDefinition.role!=UnitRole.Artillery&&u.combatDefinition.fullStrengthAttack>0&&u.GetComponent<PersonnelCarrier>()==null&&u.GetComponent<TransportTruck>()==null;
+            return !ArtilleryBattery.IsArtilleryRole(u.combatDefinition.role)&&u.combatDefinition.fullStrengthAttack>0&&u.GetComponent<PersonnelCarrier>()==null&&u.GetComponent<TransportTruck>()==null;
         }
         public bool HasCloseContact(string player,BattleUnit target)
         {
@@ -168,12 +177,13 @@ namespace CampaignDemo
             }
         }
 
-        public bool IsVisible(string player,BattleUnit target) { return target!=null&&target.OnMap&&(target.ownerId==player||AICheatRules.FullIntel(this,player)||(!target.HiddenInForest&&(!fogEnabled||VisibleAt(player,target.transform.position)||HasCloseContact(player,target)))); }
+        public bool IsVisible(string player,BattleUnit target) { return target!=null&&target.OnMap&&(LocalPvpSession.Active==null||LocalPvpSession.Active.IsHost||target.NetworkVisible)&&(target.ownerId==player||AICheatRules.FullIntel(this,player)||(!target.HiddenInForest&&(!fogEnabled||VisibleAt(player,target.transform.position)||HasCloseContact(player,target)))); }
         public bool VisibleAt(string player,Vector3 position)
         { foreach(var u in units)if(u!=null&&u.OnMap&&u.ownerId==player&&(u.transform.position-position).sqrMagnitude<=u.combatDefinition.visionRadius*u.combatDefinition.visionRadius)return true;return false; }
         public bool IsKnown(string player,BattleUnit u) { return (!fogEnabled&&revealTypesWithoutFog)||Intel.Knows(player,u); }
         public void SetPlayer(string player)
         {
+            if(LocalPvpSession.Active!=null&&player!=LocalPvpSession.Active.LocalPlayer)return;
             if(currentPlayer==player||Array.IndexOf(players,player)<0)return;
             var mode=setup.modes.CurrentMode;setup.modes.SetMode(MouseCommandMode.None);setup.modes.SetMode(mode);
             var selection=GetComponent<ArmySelection>();if(selection!=null)selection.Clear();currentPlayer=player;if(PlayerChanged!=null)PlayerChanged();
@@ -186,16 +196,18 @@ namespace CampaignDemo
             foreach(var existing in units)if(existing!=null&&(existing==unit||existing.unitId==unit.unitId))throw new ArgumentException("Duplicate unit registration");
             var allUnits=new List<BattleUnit>(units){unit};units=allUnits.ToArray();var armies=new List<ArmyRoadMover>(setup.sceneArmies){mover};setup.sceneArmies=armies.ToArray();Replay?.SampleUnit(unit);if(UnitRegistered!=null)UnitRegistered(unit);
         }
+        bool networkEnding;
+        public void ApplyNetworkEnd(){networkEnding=true;try{EndBattle();}finally{networkEnding=false;}}
         public void EndBattle()
         {
-            if(!Initialized||SimulationEnded)return;
+            if(!Initialized||SimulationEnded||(LocalPvpSession.Active!=null&&!LocalPvpSession.Active.IsHost&&!networkEnding))return;
             Replay.Sample();SimulationEnded=true;accumulator=0;setup.modes.SetMode(MouseCommandMode.None);
             foreach(var unit in units)if(unit!=null){var motor=unit.Motor;if(motor!=null){motor.Stop();motor.MovementLocked=true;}foreach(var sprite in unit.GetComponentsInChildren<SpriteRenderer>(true))sprite.enabled=false;}
             GetComponent<CombatEffectPresenter>()?.Reset();
             var ranges=GetComponent<CampaignRangeDisplay>();if(ranges!=null)ranges.enabled=false;
             Replay.Finish();
         }
-        public void NextPlayer() { int i=Array.IndexOf(players,currentPlayer);if(players.Length>0)SetPlayer(players[(i+1)%players.Length]); }
+        public void NextPlayer() { if(LocalPvpSession.Active!=null)return;int i=Array.IndexOf(players,currentPlayer);if(players.Length>0)SetPlayer(players[(i+1)%players.Length]); }
         void LateUpdate()
         {
             if(!Initialized||SimulationEnded)return;
@@ -204,6 +216,7 @@ namespace CampaignDemo
         }
     }
 }
+
 
 
 

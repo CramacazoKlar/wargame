@@ -16,7 +16,7 @@ namespace CampaignDemo
         public RoadRouteView preview;
         public float topInterfacePixels=100;
         [Min(0.001f)] public float minimumPointDistance=0.03f;
-        public string Status { get; private set; }="FREE MARCH: select an army and draw a route.";
+        public string Status { get; private set; }="E 直线行军：选择部队后点击目的地。";
         readonly List<RoadPoint> draft=new List<RoadPoint>();
         ArmyFreeMarchMover army;
         ArmyRouteMotor motor;
@@ -25,41 +25,20 @@ namespace CampaignDemo
         public void BindModes(MouseModeStateMachine state) { if(modes!=null) modes.Changed-=ModeChanged; modes=state; if(modes!=null) modes.Changed+=ModeChanged; }
         void ModeChanged(MouseCommandMode oldMode,MouseCommandMode next) { Cancel(); }
         void OnDisable() { if(modes!=null) modes.Changed-=ModeChanged; Cancel(); }
+        public void CancelDraft(){Cancel();}
+        public bool MoveStraight(Vector3 destination)
+        {
+            var selected=selection==null?null:selection.Selected;var unit=selected==null?null:selected.GetComponent<BattleUnit>();var service=GetComponent<BattleCommandService>();if(unit==null||service==null){Status="先选择己方部队";return false;}
+            var result=service.Submit(new BattleCommand{playerId=service.world.currentPlayer,unitId=unit.unitId,kind=BattleCommandKind.StraightDestination,destination=destination});Status=result.pending?"直线命令已发送":result.accepted?"已下达直线行军":result.reason;if(!result.accepted&&!result.pending)GetComponent<UnitContextOrders>()?.RejectMovement(Status);return result.accepted||result.pending;
+        }
         void Update()
         {
-            if(mapCamera==null||selection==null||map==null||map.definition==null||settings==null||preview==null||modes==null)
-            { Cancel(); Debug.LogError("FreeMarchController: camera, selection, terrain map, settings, preview or modes missing.",this); enabled=false; return; }
-            if (modes==null||modes.CurrentMode!=MouseCommandMode.FreeMarch) return;
-            if(selection.HasBoxSelection&&selection.SelectedArmies.Count>0){if(drawing)Cancel();return;}
-            if(Input.GetMouseButton(1)) { if(drawing) Cancel(); return; }
-            if(drawing&&(army==null||motor==null||!army.isActiveAndEnabled||!motor.isActiveAndEnabled||motor.MovementLocked)) { Cancel(); return; }
-            if(Input.GetKeyDown(KeyCode.Escape)) Cancel();
-            var raw=Input.mousePosition; var mouse=drawing?strokeAnchor+(raw-strokeOrigin)*Mathf.Clamp(planningSensitivity,.25f,2):raw; bool blocked=raw.y>Screen.height-topInterfacePixels||
-                (EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject());
-            var w=mapCamera.ScreenToWorldPoint(new Vector3(mouse.x,mouse.y,-mapCamera.transform.position.z)); var cursor=new RoadPoint(w.x,w.y);
-            if(Input.GetMouseButtonDown(0)&&!blocked)
-            {
-                selection.SelectAt(mouse); var selected=selection.Selected;
-                if(selected==null) { Status="Select an army first."; return; }
-                army=selected.GetComponent<ArmyFreeMarchMover>();
-                if(army==null) { Status="Army has no mode-2 component."; return; }
-                var p=mapCamera.WorldToScreenPoint(selected.transform.position);
-                if(Vector2.Distance(new Vector2(p.x,p.y),new Vector2(mouse.x,mouse.y))>settings.startPixels) { Status="Start near the army."; return; }
-                motor=selected.Motor;
-                if(motor==null||!motor.isActiveAndEnabled||!army.isActiveAndEnabled||motor.MovementLocked) { Status="Army movement is unavailable."; return; }
-                strokeOrigin=raw; strokeAnchor=p; strokeStarted=false; motor.PlanningPaused=true; drawing=true; invalid=false; draft.Clear();
-                var at=selected.transform.position; RoadNetwork.Append(draft,new RoadPoint(at.x,at.y));
-                preview.SetColor(settings.validRouteColor); preview.ShowArrow(draft); Status="Draw freely. Forbidden terrain turns red.";
-            }
-            if(drawing&&Input.GetMouseButtonUp(0))
-            {
-                if(blocked) invalid=true; else Sample(cursor,true);
-                for(int i=1;i<draft.Count&&!invalid;i++) if(!army.CanTraverse(map,draft[i-1],draft[i])) invalid=true;
-                if(!invalid&&draft.Count>1) { Status=SubmitRoute(army,draft)?"Free route confirmed.":"Route rejected. Previous order retained."; }
-                else Status=invalid?"Forbidden terrain: previous order retained.":"Army selected.";
-                Finish();
-            }
-            else if(drawing&&!Input.GetMouseButtonDown(0)&&Input.GetMouseButton(0)) { if(blocked) invalid=true; else Sample(cursor,false); UpdatePreview(); }
+            if(UnitContextOrders.BlocksInput||LocalTacticalBattle.EnabledFor(this)||modes==null||modes.CurrentMode!=MouseCommandMode.FreeMarch||selection==null||mapCamera==null)return;
+            if(selection.HasBoxSelection&&selection.SelectedArmies.Count>0)return;
+            if(GetComponent<SelectedArmyHotkeys>()?.SuppressPointer==true)return;
+            if(!Input.GetMouseButtonDown(0)||Input.GetMouseButton(1)||EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject())return;
+            if(selection.SelectAt(Input.mousePosition,true)){Status="已选择部队；点击目的地下达直线行军";return;}
+            var target=MapProjection.Ground(mapCamera,new Vector2(Input.mousePosition.x,Input.mousePosition.y));target.z=0;MoveStraight(target);
         }
         bool SubmitRoute(ArmyFreeMarchMover mover,IList<RoadPoint> route)
         {

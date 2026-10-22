@@ -12,7 +12,7 @@ namespace CampaignDemo
         public float preferredPixels=140;
         void LateUpdate()
         {
-            if(mapCamera==null||!mapCamera.orthographic||scaleBar==null)return;
+            if(mapCamera==null||scaleBar==null)return;
             var canvas=scaleBar.GetComponentInParent<Canvas>(); float factor=canvas==null?1:canvas.scaleFactor;
             float metersPerPixel=2*mapCamera.orthographicSize/Mathf.Max(1,mapCamera.pixelHeight)*metersPerWorldUnit;
             float desired=metersPerPixel*preferredPixels*factor;

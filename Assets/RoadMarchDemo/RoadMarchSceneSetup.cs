@@ -40,7 +40,7 @@ namespace CampaignDemo
         {
             if(roadMap==null||roadMap.definition==null) throw new ArgumentException("Assign Road Map and its Definition.");
             if(freeMarchMap==null||freeMarchMap.definition==null) throw new ArgumentException("Assign Free March Map and its Definition.");
-            if(mapCamera==null||!mapCamera.orthographic) throw new ArgumentException("Assign the orthographic map camera.");
+            if(mapCamera==null) throw new ArgumentException("Assign the map camera.");
             if(settings==null) throw new ArgumentException("Assign Road March Settings.");
             if(sceneArmies==null||sceneArmies.Length==0) throw new ArgumentException("Assign your scene armies.");
             var unique=new HashSet<ArmyRoadMover>();
@@ -55,6 +55,8 @@ namespace CampaignDemo
             if(roadMap.Network==null) roadMap.Initialize();
             if(roadMap.Network==null||roadMap.Network.Edges.Length==0) throw new ArgumentException("Draw at least one road.");
             modes=modes!=null?modes:GetOrAdd<MouseModeStateMachine>();
+            var terrainOverlay=GetOrAdd<TerrainMarchOverlay>();
+            terrainOverlay.map=freeMarchMap; terrainOverlay.modes=modes; terrainOverlay.enabled=true;
             var selection=GetOrAdd<ArmySelection>();
             selection.mapCamera=mapCamera; selection.settings=settings; selection.armies=sceneArmies;
             foreach(var army in sceneArmies)
@@ -82,13 +84,7 @@ namespace CampaignDemo
             tacticalDisplay=tacticalDisplay!=null?tacticalDisplay:GetOrAdd<TacticalMapDisplay>();
             tacticalDisplay.mapCamera=mapCamera; tacticalDisplay.modes=modes; tacticalDisplay.armies=sceneArmies;
             tacticalDisplay.ownershipMap=ownershipMap; tacticalDisplay.Initialize(); tacticalDisplay.enabled=showTacticalOverlays;
-            var ui=GetComponent<RoadMarchDebugUI>();
-            if(showDebugUI)
-            {
-                if(ui==null) ui=GetOrAdd<RoadMarchDebugUI>();
-                ui.controller=road; ui.freeController=freeController; ui.modes=modes; ui.enabled=true;
-            }
-            else if(ui!=null) ui.enabled=false;
+
         }
         T GetOrAdd<T>() where T:Behaviour
         {

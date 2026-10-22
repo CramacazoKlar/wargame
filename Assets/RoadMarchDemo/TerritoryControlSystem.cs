@@ -21,6 +21,14 @@ namespace CampaignDemo
         public void Initialize()
         {
             if(owners!=null)return;
+            if(world!=null&&world.setup!=null)
+            {
+                var terrain=world.setup.freeMarchMap;if(terrain!=null)terrain.SyncBoundsToBackground();
+                Rect current;if(MapViewBounds.TryGet(world.setup.roadMap,terrain,out current))bounds=current;
+                var road=world.setup.roadMap;
+                if(road!=null&&road.definition!=null&&road.definition.background!=null)
+                {var rect=road.definition.background.rect;mapPixels=new Vector2Int(Mathf.RoundToInt(rect.width),Mathf.RoundToInt(rect.height));}
+            }
             cellSize=Mathf.Max(.1f,cellSize);cellWidth=usePixelCellSize?bounds.width*Mathf.Max(1,cellPixels.x)/Mathf.Max(1,mapPixels.x):cellSize;cellHeight=usePixelCellSize?bounds.height*Mathf.Max(1,cellPixels.y)/Mathf.Max(1,mapPixels.y):cellSize;columns=Mathf.Clamp(Mathf.CeilToInt(bounds.width/cellWidth),1,128);rows=Mathf.Clamp(Mathf.CeilToInt(bounds.height/cellHeight),1,128);
             owners=new string[columns*rows];counts=new Dictionary<string,float>[owners.Length];
             var vertices=new Vector3[owners.Length*4];var indices=new int[owners.Length*6];vertexColors=new Color[vertices.Length];
@@ -32,6 +40,8 @@ namespace CampaignDemo
             }
             var go=new GameObject("Control territory overlay");go.transform.SetParent(transform,false);mesh=new Mesh{name="Fixed world control grid"};if(vertices.Length>65535)mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;mesh.vertices=vertices;mesh.triangles=indices;mesh.colors=vertexColors;mesh.RecalculateBounds();go.AddComponent<MeshFilter>().sharedMesh=mesh;overlayRenderer=go.AddComponent<MeshRenderer>();overlayRenderer.sortingOrder=-5;material=new Material(Shader.Find("Sprites/Default"));overlayRenderer.sharedMaterial=material;
         }
+        public string[] NetworkOwners(string viewer){var result=new string[owners.Length];for(int i=0;i<owners.Length;i++)result[i]=!world.fogEnabled||owners[i]==viewer?owners[i]:"";return result;}
+        public void ApplyNetworkOwners(string[] incoming){if(owners==null||incoming.Length!=owners.Length)return;System.Array.Copy(incoming,owners,owners.Length);revision++;}
         public int CellAt(Vector3 p)
         { if(owners==null||!bounds.Contains(p))return -1;return Mathf.Clamp(Mathf.FloorToInt((p.y-bounds.yMin)/cellHeight),0,rows-1)*columns+Mathf.Clamp(Mathf.FloorToInt((p.x-bounds.xMin)/cellWidth),0,columns-1); }
         Rect CellRect(int i) { float x=bounds.xMin+(i%columns)*cellWidth,y=bounds.yMin+(i/columns)*cellHeight;return Rect.MinMaxRect(x,y,Mathf.Min(bounds.xMax,x+cellWidth),Mathf.Min(bounds.yMax,y+cellHeight)); }
@@ -39,7 +49,7 @@ namespace CampaignDemo
         public void Resolve()
         {
             if(world==null||owners==null)return;foreach(var d in counts)d.Clear();
-            foreach(var u in world.units)if(u!=null&&u.OnMap){int i=CellAt(u.transform.position);if(i<0)continue;var d=counts[i];if(!d.ContainsKey(u.ownerId))d.Add(u.ownerId,0);d[u.ownerId]+=world.campaign!=null&&world.campaign.Vehicle(u)?world.campaign.rules.At(world.campaign.rules.transportEquivalents,u.combatDefinition.echelon)*u.Fraction:u.Personnel;}
+            foreach(var u in world.units)if(u!=null&&u.OnMap){int i=CellAt(u.transform.position);if(i<0)continue;var d=counts[i];if(!d.ContainsKey(u.ownerId))d.Add(u.ownerId,0);d[u.ownerId]+=world.campaign!=null&&world.campaign.Vehicle(u)?world.campaign.rules.At(world.campaign.rules.transportEquivalents,u.combatDefinition.echelon)*u.Fraction*TacticalDetachment.Scale(u):u.Personnel;}
             for(int i=0;i<owners.Length;i++)
             {
                 string cityOwner=null;bool mixed=false;

@@ -18,7 +18,6 @@ namespace CampaignDemo.Editor
             var system=world.GetComponent<CombinedArmsWorld>();if(system==null)system=world.gameObject.AddComponent<CombinedArmsWorld>();system.world=world;
             var engineering=Asset<EngineeringDefinition>("DefaultEngineering");system.engineering=engineering;
             var artillery=Asset<ArtilleryDefinition>("DefaultArtillery");
-            var support=Asset<ArtilleryDefinition>("DefaultSupport");if(support.cooldownSeconds==20){support.cooldownSeconds=60;support.range=100;support.damage=60;}system.supportDefinition=support;
             var hud=UnityEngine.Object.FindObjectOfType<BattleHUD>();var special=hud.GetComponent<CombinedArmsHUD>();if(special==null)special=hud.gameObject.AddComponent<CombinedArmsHUD>();special.hud=hud;
             foreach(var guid in AssetDatabase.FindAssets("t:ArmyCombatDefinition")){var d=AssetDatabase.LoadAssetAtPath<ArmyCombatDefinition>(AssetDatabase.GUIDToAssetPath(guid));if(d.unitType=="Armor"||d.unitType=="装甲"||d.unitType=="坦克")d.role=UnitRole.Tank;else if(d.unitType=="运输车")d.role=UnitRole.Logistics;EditorUtility.SetDirty(d);}
             var template=world.units[0];var roadTemplate=template.GetComponent<ArmyRoadMover>();var root=GameObject.Find("ArmyRoot").transform;
@@ -38,9 +37,10 @@ namespace CampaignDemo.Editor
                 EditorUtility.SetDirty(combat);EditorUtility.SetDirty(move);
             }
             world.units=all.ToArray();world.setup.sceneArmies=movers.ToArray();
-            foreach(var a in new ScriptableObject[]{engineering,artillery,support})EditorUtility.SetDirty(a);
+            foreach(var a in new ScriptableObject[]{engineering,artillery})EditorUtility.SetDirty(a);
             EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();Debug.Log("COMBINED_ARMS_CONFIGURED");
         }
     }
 }
+
 

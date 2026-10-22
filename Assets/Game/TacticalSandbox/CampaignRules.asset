@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 967ed1d9ca8607d45b722951d6c3f12e, type: 3}
+  m_Name: CampaignRules
+  m_EditorClassIdentifier: 
+  troopStrength:
+  - 7
+  - 21
+  - 63
+  - 189
+  - 567
+  - 1701
+  - 5103
+  - 15309
+  transportEquivalents:
+  - 1
+  - 3
+  - 9
+  - 27
+  - 81
+  - 243
+  - 729
+  - 2187
+  passengerCapacity:
+  - 7
+  - 21
+  - 63
+  - 189
+  - 567
+  - 1701
+  - 5103
+  - 15309
+  cargoCapacity:
+  - 10000
+  - 30000
+  - 90000
+  - 270000
+  - 810000
+  - 2430000
+  - 7290000
+  - 21870000
+  lossPerStrengthPerSecond: 0.02
+  engineerOrdinaryAttackMultiplier: 0.1
+  integrationStep: 0.01
+  distanceDecay: 0.6666667
+  contactWeightFloor: 0.44444445
+  vehicleHealthPerEquivalent: 100
+  movingIncomingMultiplier: 1.2
+  retreatLossFraction: 0.075
+  retreatMinimumSpeed: 0.05
+  retreatAwayDotThreshold: 0.25
+  retreatEncounterResetSeconds: 5
+  infantryFacingLingerSeconds: 2
+  frontHalfAngle: 60
+  rearStartsAngle: 135
+  infantrySideMultiplier: 1.2
+  infantryRearMultiplier: 1.4
+  tankSideMultiplier: 2
+  tankRearMultiplier: 3
+  directionSeparationDegrees: 45
+  encirclementIncrement: 0.15
+  encirclementCap: 2
+  artilleryDamagePerStrength: 0.2
+  shellMaximumLossFraction: 0.15
+  fortHealth: 100
+  fortMovementMultiplier: 0.5
+  fortAttackMultiplier: 1.3
+  fortArtilleryProtection: 0.5
+  shellFortDamageShare: 0.5
+  fortLevelCount: 3
+  fortLevelHealthFactor: 2
+  fortLevelAttackFactor: 1.1
+  fortLevelProtectionIncrement: 0.15
+  fortMaximumProtection: 0.9
+  engineerFortDamageMultiplier: 3
+  constructionRange: 0.8
+  warehouseCaptureRadius: 0.7
+  warehouseInteractionRadius: 0.8
+  warehouseCaptureSeconds: 5
+  warehouseBuildCost: 20000
+  warehouseBuildRadius: 0.25
+  transportInteractionRadius: 0.8
+  placementPreviewRadius: 0.3
+  unloadSearchSamples: 24
+  unloadDirections: 8
+  unloadFirstRadius: 0.18
+  unloadRingStep: 0.12

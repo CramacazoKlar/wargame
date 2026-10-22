@@ -38,8 +38,8 @@ namespace CampaignDemo.Editor
                 if(stage==2&&Time.time-phaseStart>.1f)
                 {
                     Check(UnityEngine.Object.FindObjectsOfType<CombatEffectInstance>().Length==0,"disabling effect player clears objects");w.NotifyCombatEffect(Direct(u));Check(UnityEngine.Object.FindObjectsOfType<CombatEffectInstance>().Length==0,"disabled player spawns no effects");
-                    player.enabled=true;testProfile.showPlaceholder=true;presenter.supportProfile=testProfile;player.maxActiveObjects=4;
-                    for(int i=0;i<50;i++)w.NotifyCombatEffect(new CombatEffectEvent(CombatEffectStage.SupportImpact,null,"A",UnitRole.Artillery,false,Vector3.zero,null,null,u.transform.position,.3f));
+                    player.enabled=true;testProfile.showPlaceholder=true;presenter.artilleryProfile=testProfile;player.maxActiveObjects=4;
+                    for(int i=0;i<50;i++)w.NotifyCombatEffect(new CombatEffectEvent(CombatEffectStage.ArtilleryImpact,null,"A",UnitRole.Artillery,false,Vector3.zero,null,null,u.transform.position,.3f));
                     var active=(List<GameObject>)typeof(PrefabCombatEffectPlayer).GetField("active",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(player);Check(active.Count<=4,"effect object budget bounded under heavy attacks");stage=3;phaseStart=Time.time;return;
                 }
                 if(stage==3&&Time.time-phaseStart>.1f)

@@ -61,7 +61,6 @@ public static class BasicCommanderVerification
                 Check(commander.DefenseAllocated>=commander.DefenseRequirement,"whole units satisfy fixed and proportional defense floor");
                 Check(commander.Attackers.All(u=>u.ownerId=="B"),"attack squad contains only absolute red units");
                 Check(reds.Any(u=>u.Motor.IsMoving),"red has accepted real movement commands");
-                Check(world.campaign.logistics.collectors.Any(c=>c!=null&&c.Alive&&c.ownerId=="B"),"resource production deploys a real red collector through game rules");
                 initialRed=reds.Select(u=>u.transform.position).ToArray();initialBlue=blues.Select(u=>u.transform.position).ToArray();
                 mark=Time.time;stage=1;return;
             }

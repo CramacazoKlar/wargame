@@ -13,6 +13,11 @@ namespace CampaignDemo
         {
             var p=transform.InverseTransformPoint(new Vector3((float)world.X,(float)world.Y));
             foreach(var bridge in bridges) if(bridge.Contains(p))return false;
+            return IsRawWater(world);
+        }
+        public bool IsRawWater(RoadPoint world)
+        {
+            var p=transform.InverseTransformPoint(new Vector3((float)world.X,(float)world.Y));
             if(source==null)return false;
             if(cached!=source||pixels==null) { cached=source; pixels=source.GetPixels32(); width=source.width;height=source.height; }
             if(!localBounds.Contains(p))return false;

@@ -1,0 +1,83 @@
+拼接地图设置说明（Unity wargame 工程）
+
+一、已放入的文件
+Assets/Game/Art/MapArmyStitched.png：6218 × 4616 原分辨率底图。
+MapArmyStitched-preview.jpg：预览图。
+仅新增地图素材和图片导入配置，没有修改场景、道路或地形数据。
+
+二、替换场景底图
+1. 等待 Unity 导入图片，退出 Play 模式，打开 Assets/Scenes/Battle01.unity。
+2. 在 Hierarchy 选择 MapRoot，找到 Road Map Runtime 的 Definition。
+   当前 Battle01 使用 Assets/Game/Data/ReferenceRoadMap.asset。
+   可以先复制这个资产并命名为 StitchedRoadMap，再赋给 Definition，保留旧地图配置。
+3. 在道路地图资产中，把 MapArmyStitched 的 Sprite 拖到 Background。
+4. Background Size 设置 X=36、Y=26.724992；Background Center 设置 X=0、Y=0。
+   宽度 36 沿用原工程的测试世界尺寸，不表示实际 36 公里。
+   如果自行改宽度 W，高度应为 W × 4616 ÷ 6218。
+5. MapRoot 的位置保持 (0,0,0)，缩放保持 (1,1,1)。
+6. 不必额外建立底图 SpriteRenderer；运行组件会显示 Background。
+
+三、图片清晰度
+已准备对应 .meta 导入配置。选中 PNG，在 Inspector 核对：
+Texture Type：Sprite (2D and UI)
+Sprite Mode：Single
+Mesh Type：Full Rect
+Pixels Per Unit：100
+Max Size：8192
+Compression：None
+Generate Mip Maps：关闭
+Filter Mode：Bilinear
+Wrap Mode：Clamp
+Read/Write：开启（供当前工程的像素水域读取使用）
+如果某平台开启了 Override，该平台也应设 Max Size=8192、Compression=None。
+导入后核对实际纹理尺寸仍为 6218 × 4616；手动修改参数后点击 Apply。
+
+四、手工绘制地形
+1. 在 MapRoot 找到 Free March Map Runtime 的 Definition。
+   当前使用 Assets/Game/Data/ReferenceTerrain.asset。
+   建议复制为 StitchedTerrain，再把副本赋给 Definition。
+2. 打开地形资产，将 Bounds 设置为：
+   X=-18，Y=-13.362496，Width=36，Height=26.724992。
+   Default Terrain 选 Ground。检查 Regions，删除副本里属于旧地图的区域。
+3. 回到 MapRoot，在 Free March Map Runtime 下选择需要绘制的地形种类，
+   开启 Inspector 中的区域绘制按钮，在 Scene 的 2D 视图沿边界逐点左击。
+   至少三个点后按 Enter 完成区域；Esc 取消当前绘制。
+   关闭绘制后可以拖动顶点。区域名称、种类也可以在资产的 Regions 中调整。
+4. 用 Forest 标森林，Mountain 标山地，HighMountain 标高山，
+   Water 标水域，Blocked 标完全禁行区域，Road 标道路通行走廊。
+   以组件的可选地形项为准。后面的区域覆盖前面的区域；桥和通行口可在后面添加窄 Road 区域。
+5. 军队能否通行由自身 Allowed Terrain 决定，移动速度还受地形减速参数影响。
+   保存资产和场景后运行，分别测试地面、水域、山地和通行口。
+
+五、水域判定：选择一种配置方式
+推荐自己标地形时使用手工水域：
+清空 Free March Map Runtime 的 Water Map 引用，同时清空各军队 Army Road Mover 的 Water Map 引用。
+再用 Water / Blocked 多边形标河流与禁行区域。
+道路模式的线路也要人工保证不穿越不应通行的河流。
+
+如果保留 Raster Water Map 的像素颜色判定：
+把 Source 换成新的完整 Texture2D；Local Bounds 与上述 Bounds 一致。
+旧 Bridges 坐标属于旧图，需要自己清除后重设。
+单独绘制 Road 多边形不会解除像素水域拦截；桥梁需要配置 Bridges。
+新图的配色与阴影可能造成识别误判，运行时逐处检查。
+
+六、绘制道路
+MapRoot → Road Map Runtime → Paint roads in Scene view。
+在 Scene 中沿道路逐点左击；点击已有节点可以连接路口。
+Start another road 开始另一条道路，Esc 结束当前线；关闭绘制后拖动节点。
+Nodes / Connections 是道路行军的实际路线，底图中的道路不会自动成为路线。
+如果资产仍有旧节点与连线，应在新资产中清除后自己重绘。
+Show Roads 关闭可隐藏额外道路覆盖线，保留原底图外观。
+自由行军的 Road 地形区域与道路节点网络是两套数据，按需要分别配置。
+
+七、镜头和比例尺
+Map Pan Controller 开启 Use Bounds，并将 Camera Center Bounds 设置为上述矩形。
+Main Camera 使用 Orthographic，位置 (0,0,-10)。
+Map Zoom Controller 可先用 Minimum Size=3、Maximum Size=25；
+若希望启动时使用相机设置，关闭 Start At Middle，将 Orthographic Size 先设 14。
+相机中心边界不会保证画面四周永远落在底图内。
+比例尺组件 MapReferenceHUD 的 Meters Per World Unit 需按已知实际距离校准：
+实际距离（米）÷ 对应世界坐标距离。当前 36 世界单位是测试尺寸，不能直接当公里。
+
+不要运行 Campaign Demo/Apply requested reference map (explicit only)。
+这个旧工具使用旧图片、旧坐标，会重新写入旧道路、桥梁及场景设置。

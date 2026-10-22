@@ -118,7 +118,10 @@ namespace CampaignDemo
         void Stop(BattleUnit u){if(u!=null&&u.Alive&&u.Motor!=null&&u.Motor.IsMoving)controller.IssueCommand(u.GetComponent<AIUnitOrder>(),new BattleCommand{kind=BattleCommandKind.StopMovement});}
         public bool StepUnit(AIUnitOrder order,List<ArmyInfo> contacts,float dt)
         {
-            if(!Active||!Managed(order))return false;
+            if(!Active)return false;
+            var directTruck=order.GetComponent<TransportTruck>();
+            if(LocalTacticalBattle.EnabledFor(this)&&directTruck!=null){order.State=directTruck.Unit.Motor!=null&&directTruck.Unit.Motor.IsMoving?AIUnitState.Marching:AIUnitState.Holding;order.DecisionReason="运输车直接采集并运回城市";return true;}
+            if(!Managed(order))return false;
             var u=order.GetComponent<BattleUnit>();
             if(!u.OnMap){order.State=AIUnitState.Unavailable;return true;}
             if(u.Fraction<=profile.retreatHealth||Recovering(u)){Move(order,NearestCity(u.transform.position),"返回恢复点");return true;}
@@ -219,44 +222,9 @@ namespace CampaignDemo
             }
         }
 
-        void Economy()
-        {
-            var campaign=controller.world.campaign;
-            if(campaign==null||campaign.logistics==null){EconomyStatus="未配置资源系统";return;}
-            var logistics=campaign.logistics;
-            EconomyStatus="资源生产与补给检查";
-            if(profile.produceResources&&logistics.collectors.Count(c=>c!=null&&c.Alive&&c.ownerId==BattleFactions.RedPlayerId)<profile.maximumCollectors)
-            {
-                float free=cities.Sum(p=>Mathf.Max(0,p.resourceStock-controller.reservations.ReservedAt(p.GetInstanceID().ToString())));
-                if(free>=campaign.rules.collectorBuildCost+profile.productionReserve)
-                {
-                    bool built=false;foreach(var site in logistics.sites.Where(s=>s!=null))
-                    {
-                        for(int y=0;y<5&&!built;y++)for(int x=0;x<5&&!built;x++)
-                        {
-                            var area=site.Area;var position=new Vector3(area.xMin+area.width*(x+.5f)/5,area.yMin+area.height*(y+.5f)/5);
-                            var payer=campaign.Payer(BattleFactions.RedPlayerId,campaign.rules.collectorBuildCost);
-                            if(payer==null||payer.resourceStock-controller.reservations.ReservedAt(payer.GetInstanceID().ToString())<campaign.rules.collectorBuildCost+profile.productionReserve)continue;
-                            if(campaign.CanDeployCollector(BattleFactions.RedPlayerId,position))built=controller.commands.Submit(new BattleCommand{kind=BattleCommandKind.DeployResourceCollector,playerId=BattleFactions.RedPlayerId,destination=position}).accepted;
-                        }
-                        if(built)break;
-                    }
-                    EconomyStatus=built?"已部署资源采集器":"等待合法资源区";
-                }
-                else EconomyStatus="优先保障恢复资源，暂缓建设";
-            }
-            if(!profile.transportResources)return;
-            foreach(var order in controller.Orders)
-            {
-                var truck=order.GetComponent<TransportTruck>();if(truck==null||!truck.Unit.Alive)continue;
-                var response=truck.GetComponent<AISupplyResponse>();
-                if(response!=null&&response.isActiveAndEnabled&&(!managedTrucks.Contains(truck.Unit.unitId)||order.life!=AITaskLife.Completed))continue;
-                var source=logistics.collectors.Where(c=>c!=null&&c.Alive&&c.ownerId==BattleFactions.RedPlayerId&&c.Stock>0).OrderBy(c=>Vector2.Distance(c.transform.position,truck.transform.position)).FirstOrDefault();
-                var destination=cities.OrderBy(c=>c.resourceStock+controller.reservations.IncomingAt(c.GetInstanceID().ToString())).FirstOrDefault();
-                if(source==null||destination==null||destination.resourceStock>=profile.desiredCityStock)continue;
-                if(response==null)response=truck.gameObject.AddComponent<AISupplyResponse>();
-                response.sourceCollector=source;response.destinationCity=destination;response.repeat=false;response.enabled=true;response.RestartTask();managedTrucks.Add(truck.Unit.unitId);
-            }
-        }
+        void DirectResourceEconomy(CampaignRuntime campaign,LogisticsWorld logistics){if(LocalPrototypeOrders.EnabledFor(this)){if(profile.transportResources)controller.world.GetComponent<LocalPrototypeOrders>()?.EnsureAiTransports();return;}EconomyStatus="运输车直接采集资源并运往城市";if(!profile.transportResources)return;foreach(var unit in controller.world.units){var truck=unit==null?null:unit.GetComponent<TransportTruck>();if(truck==null||unit.ownerId!=BattleFactions.RedPlayerId||!unit.OnMap||unit.Motor==null||unit.Motor.IsMoving)continue;var site=logistics.sites.Where(s=>s!=null&&s.stock>0).OrderBy(s=>Vector2.Distance(s.transform.position,unit.transform.position)).FirstOrDefault();if(site!=null&&site.Area.Contains(unit.transform.position)&&truck.Cargo<truck.Capacity*.99f)continue;Vector3 goal;if(truck.Cargo>0){var city=cities.OrderBy(c=>Vector2.Distance(c.transform.position,unit.transform.position)).FirstOrDefault();if(city==null)continue;if(Vector2.Distance(city.transform.position,unit.transform.position)<=UnitRanges.Interaction(unit))continue;goal=city.transform.position;}else{if(site==null)continue;goal=site.transform.position;}controller.commands.Submit(new BattleCommand{playerId=unit.ownerId,unitId=unit.unitId,kind=BattleCommandKind.FreeDestination,destination=goal});}}
+        void Economy(){var campaign=controller.world.campaign;if(campaign==null||campaign.logistics==null){EconomyStatus="未配置资源系统";return;}DirectResourceEconomy(campaign,campaign.logistics);}
+
     }
 }
+

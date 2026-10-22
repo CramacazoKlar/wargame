@@ -8,7 +8,25 @@ namespace CampaignDemo
         public CampaignRuntime campaign;
         public sealed class Project
         {public BattleUnit worker;public Vector3[] points;public Vector3 side;public Fortification fort;public RecoveryPoint payer;public float cost,totalTime,remaining,lengthMeters;public int level;public string owner;public bool approaching;public Vector3 site;public float cutFrom,cutTo;}
+        readonly Dictionary<BattleUnit,PvpUnit> networkWork=new Dictionary<BattleUnit,PvpUnit>();
+        public void ApplyNetworkWork(BattleUnit worker,PvpUnit data){networkWork[worker]=data;}
+        bool ReplicaWork(BattleUnit worker,out PvpUnit data){data=null;return LocalPvpSession.Active!=null&&!LocalPvpSession.Active.IsHost&&networkWork.TryGetValue(worker,out data);}
         readonly List<Project> projects=new List<Project>();
+        sealed class Helper {public BattleUnit worker;public Project project;public bool arriving;}
+        readonly List<Helper> helpers=new List<Helper>();
+        public CommandResult Assist(BattleUnit worker,Vector3 point){
+            if(worker==null||!worker.OnMap||worker.combatDefinition.role!=UnitRole.Engineer)return CommandResult.No("需地图上的工兵");
+            if(Working(worker)){Cancel(worker);return CommandResult.No("已取消原施工任务，请再次右键指派");}
+            if(worker.Working)return CommandResult.No("工兵正忙");Project chosen=null;float distance=.75f;
+            foreach(var p in projects)if(p.fort==null&&p.owner==worker.ownerId)for(int i=1;i<p.points.Length;i++){Vector2 d=p.points[i]-p.points[i-1];float t=d.sqrMagnitude>0?Mathf.Clamp01(Vector2.Dot((Vector2)(point-p.points[i-1]),d)/d.sqrMagnitude):0;float r=Vector2.Distance(point,(Vector2)p.points[i-1]+d*t);if(r<distance){distance=r;chosen=p;}}
+            if(chosen==null)return CommandResult.No("请右键点击己方正在施工的防线");
+            var free=worker.GetComponent<ArmyFreeMarchMover>();var route=ConstructionNavigation.Plan(campaign.world.setup.freeMarchMap,free.AllowedTerrain,worker.transform.position,chosen.site,Rules.navigationCellSize,Rules.navigationSearchLimit);
+            if(route==null||!free.CommitRoute(route,campaign.world.setup.freeMarchMap))return CommandResult.No("工兵无法抵达施工点");helpers.Add(new Helper{worker=worker,project=chosen,arriving=true});return CommandResult.Yes();
+        }
+        public List<PvpWork> NetworkProjects(string viewer){var result=new List<PvpWork>();foreach(var p in projects)if(p.fort==null&&p.owner==viewer)result.Add(new PvpWork{worker=p.worker.unitId,owner=p.owner,points=p.points,side=p.side,site=p.site,total=p.totalTime,remaining=p.remaining,length=p.lengthMeters,level=p.level,approaching=p.approaching});return result;}
+        public void ApplyNetworkProjects(List<PvpWork> incoming){projects.Clear();if(incoming==null)return;foreach(var data in incoming){BattleUnit worker=null;foreach(var u in campaign.world.units)if(u!=null&&u.unitId==data.worker){worker=u;break;}if(worker!=null)projects.Add(new Project{worker=worker,owner=data.owner,points=data.points,side=data.side,site=data.site,totalTime=data.total,remaining=data.remaining,lengthMeters=data.length,level=data.level,approaching=data.approaching});}}
+        public IEnumerable<Project> ActiveProjects {get{return projects;}}
+        public float Progress(Project p){return p.totalTime<=0?1:1-p.remaining/p.totalTime;}
         sealed class Removal {public string player;public float remaining,total;}
         readonly Dictionary<Fortification,Removal> removals=new Dictionary<Fortification,Removal>();
         Material material;
@@ -21,16 +39,17 @@ namespace CampaignDemo
             reason="";if(worker==null||!worker.OnMap||worker.Working||Working(worker)||worker.combatDefinition.role!=UnitRole.Engineer){reason="只有空闲地图工兵可以施工";return false;}
             if(points==null||points.Count<2||points.Count>Rules.maximumLinePoints||Length(points)<Rules.minimumLineWorldLength){reason="防线太短或点数超限";return false;}
             var map=campaign.world.setup.freeMarchMap;var free=worker.GetComponent<ArmyFreeMarchMover>();if(map==null||free==null){reason="缺少地形引用";return false;}
-            foreach(var p in points)if(!CombinedArmsWorld.Finite(p)||Vector2.Distance(worker.transform.position,p)>worker.combatDefinition.visionRadius+.0001f){reason="防线超出工兵视野";return false;}
+            if(LocalTacticalBattle.EnabledFor(this)&&Length(points)>(LocalPrototypeOrders.EnabledFor(this)?Mathf.Max(8,Rules.maximumLineWorldLength):Rules.maximumLineWorldLength)){reason="超过单次最大修建长度（"+(LocalPrototypeOrders.EnabledFor(this)?Mathf.Max(8,Rules.maximumLineWorldLength):Rules.maximumLineWorldLength).ToString("0.#")+" km）";return false;}
+            foreach(var p in points)if(!CombinedArmsWorld.Finite(p)||(!LocalTacticalBattle.EnabledFor(this)&&Vector2.Distance(worker.transform.position,p)>worker.combatDefinition.visionRadius+.0001f)){reason="防线超出工兵视野";return false;}
             // Connected, crossing and overlapping lines are allowed; terrain still applies.
             for(int i=1;i<points.Count;i++){var a=points[i-1];var b=points[i];if(!map.CanTraverse(new RoadPoint(a.x,a.y),new RoadPoint(b.x,b.y),free.AllowedTerrain)){reason="防线经过水域或禁行地形";return false;}}
-            Vector3 site=(points[0]+points[points.Count-1])/2;if(!map.CanTraverse(new RoadPoint(site.x,site.y),new RoadPoint(site.x,site.y),free.AllowedTerrain)){reason="起终点中点不通行，无法施工";return false;}
+            Vector3 site=LocalTacticalBattle.EnabledFor(this)?points[0]:(points[0]+points[points.Count-1])/2;if(!map.CanTraverse(new RoadPoint(site.x,site.y),new RoadPoint(site.x,site.y),free.AllowedTerrain)){reason="起终点中点不通行，无法施工";return false;}
             float cost=Length(points)*Rules.metersPerWorldUnit*Rules.lineCostPerMeter;var city=NearestCity(worker.ownerId,worker.transform.position);if(city==null||city.resourceStock<cost){reason="最近己方城市库存不足；不会改扣更远城市";return false;}return true;
         }
         public CommandResult Build(BattleUnit worker,IList<Vector3> points)
         {
             if(!CanBuild(worker,points,out var reason))return CommandResult.No(reason);
-            Vector3 site=(points[0]+points[points.Count-1])/2;site.z=0;var free=worker.GetComponent<ArmyFreeMarchMover>();var route=ConstructionNavigation.Plan(campaign.world.setup.freeMarchMap,free.AllowedTerrain,worker.transform.position,site,Rules.navigationCellSize,Rules.navigationSearchLimit);if(route==null)return CommandResult.No("起终点中点不通行或无法到达");
+            Vector3 site=LocalTacticalBattle.EnabledFor(this)?points[0]:(points[0]+points[points.Count-1])/2;site.z=0;var free=worker.GetComponent<ArmyFreeMarchMover>();var route=ConstructionNavigation.Plan(campaign.world.setup.freeMarchMap,free.AllowedTerrain,worker.transform.position,site,Rules.navigationCellSize,Rules.navigationSearchLimit);if(route==null)return CommandResult.No("施工点不通行或无法到达");
             bool approaching=Vector2.Distance(worker.transform.position,site)>Rules.constructionArrivalDistance;if(approaching&&(worker.Motor==null||!free.CommitRoute(route,campaign.world.setup.freeMarchMap)))return CommandResult.No("工兵无法执行到中点的移动路线");
             float length=Length(points)*Rules.metersPerWorldUnit;var city=NearestCity(worker.ownerId,worker.transform.position);float cost=length*Rules.lineCostPerMeter;city.resourceStock-=cost;float time=length*Rules.lineBuildSecondsPerMeter;
             var p=new Project{worker=worker,points=new List<Vector3>(points).ToArray(),side=worker.transform.position,site=site,approaching=approaching,payer=city,cost=cost,totalTime=time,remaining=time,lengthMeters=length,level=worker.GetComponent<CampaignUnit>().fortBuildLevel,owner=worker.ownerId};Begin(p);return CommandResult.Yes();
@@ -71,21 +90,22 @@ namespace CampaignDemo
             original.Demolish();return result;
         }
         public CommandResult Dismantle(BattleUnit worker,Fortification fort){return CommandResult.No("请选择工兵画出要拆除的防线段");}
-        public bool IsBuilding(BattleUnit worker){return projects.Exists(p=>p.worker==worker&&p.fort==null);}
-        public bool IsDismantling(BattleUnit worker){return projects.Exists(p=>p.worker==worker&&p.fort!=null);}
-        public bool Working(BattleUnit worker){return projects.Exists(p=>p.worker==worker);}
-        public float Remaining(BattleUnit worker){var p=projects.Find(j=>j.worker==worker);return p==null?0:p.remaining;}
-        public bool Approaching(BattleUnit worker){return projects.Exists(p=>p.worker==worker&&p.approaching);}
+        public bool IsBuilding(BattleUnit worker){if(ReplicaWork(worker,out var data))return data.engineering==1;return projects.Exists(p=>p.worker==worker&&p.fort==null)||helpers.Exists(h=>h.worker==worker);}
+        public bool IsDismantling(BattleUnit worker){if(ReplicaWork(worker,out var data))return data.engineering==2;return projects.Exists(p=>p.worker==worker&&p.fort!=null);}
+        public bool Working(BattleUnit worker){if(ReplicaWork(worker,out var data))return data.engineering!=0;return projects.Exists(p=>p.worker==worker)||helpers.Exists(h=>h.worker==worker);}
+        public float Remaining(BattleUnit worker){if(ReplicaWork(worker,out var data))return data.workRemaining;var p=projects.Find(j=>j.worker==worker)??helpers.Find(h=>h.worker==worker)?.project;return p==null?0:p.remaining;}
+        public bool Approaching(BattleUnit worker){if(ReplicaWork(worker,out var data))return data.workApproaching;return projects.Exists(p=>p.worker==worker&&p.approaching)||helpers.Exists(h=>h.worker==worker&&h.arriving);}
         public float RemovalRemaining(Fortification fort){return removals.TryGetValue(fort,out var r)?r.remaining:0;}
         public bool Removing(Fortification fort){return fort!=null&&removals.ContainsKey(fort);}
         public CommandResult ToggleAutomaticRemoval(string player,Fortification fort){return CommandResult.No("远程拆除已取消，请用工兵画拆除线");}
         void TickRemovals(float dt)
         {foreach(var fort in new List<Fortification>(removals.Keys)){var r=removals[fort];if(fort==null||fort.Destroyed||(!Rules.allowEnemyAutomaticDemolition&&fort.ownerId!=r.player)){removals.Remove(fort);continue;}r.remaining=Mathf.Max(0,r.remaining-Mathf.Max(0,dt));if(r.remaining<=0){fort.Demolish();removals.Remove(fort);}}}
-        public void Cancel(BattleUnit worker){for(int i=projects.Count-1;i>=0;i--)if(projects[i].worker==worker){Refund(projects[i]);Finish(projects[i]);projects.RemoveAt(i);}}
+        public void Cancel(BattleUnit worker){for(int i=helpers.Count-1;i>=0;i--)if(helpers[i].worker==worker){worker.Motor?.Stop();worker.SetWorking(false);helpers.RemoveAt(i);}for(int i=projects.Count-1;i>=0;i--)if(projects[i].worker==worker){Refund(projects[i]);Finish(projects[i]);projects.RemoveAt(i);}}
         void Refund(Project p){if(p.fort==null&&p.payer!=null&&p.totalTime>0)p.payer.resourceStock+=p.cost*Mathf.Clamp01(p.remaining/p.totalTime);}
-        void Finish(Project p){if(p.worker!=null){if(p.approaching&&p.worker.Motor!=null)p.worker.Motor.Stop();p.worker.SetWorking(false);}}
+        void Finish(Project p){for(int i=helpers.Count-1;i>=0;i--)if(helpers[i].project==p){if(helpers[i].worker!=null){helpers[i].worker.Motor?.Stop();helpers[i].worker.SetWorking(false);}helpers.RemoveAt(i);}if(p.worker!=null){if(p.approaching&&p.worker.Motor!=null)p.worker.Motor.Stop();p.worker.SetWorking(false);}}
         public void Tick(float dt)
         {
+            for(int k=helpers.Count-1;k>=0;k--){var h=helpers[k];if(h.worker==null||!h.worker.OnMap||h.worker.UnderFire||!projects.Contains(h.project)){if(h.worker!=null)h.worker.SetWorking(false);helpers.RemoveAt(k);continue;}if(h.arriving&&Vector2.Distance(h.worker.transform.position,h.project.site)<=Rules.constructionArrivalDistance){h.worker.Motor.Stop();h.worker.SetWorking(true);h.arriving=false;}}
             for(int i=projects.Count-1;i>=0;i--)
             {
                 var p=projects[i];bool invalid=p.worker==null||!p.worker.OnMap||p.worker.ownerId!=p.owner||p.worker.UnderFire||(p.fort!=null&&p.fort.Destroyed);
@@ -97,7 +117,7 @@ namespace CampaignDemo
                 if(!invalid&&!p.worker.Working)invalid=true;
                 if(!invalid&&p.fort!=null)invalid=p.fort.Destroyed||Vector2.Distance(p.worker.transform.position,p.site)>Rules.constructionArrivalDistance;
                 if(!invalid&&p.fort==null&&!p.approaching)invalid=Vector2.Distance(p.worker.transform.position,p.site)>Rules.constructionArrivalDistance;
-                if(invalid){Refund(p);Finish(p);projects.RemoveAt(i);continue;}p.remaining=Mathf.Max(0,p.remaining-Mathf.Max(0,dt));if(p.remaining>0)continue;
+                if(invalid){Refund(p);Finish(p);projects.RemoveAt(i);continue;}p.remaining=Mathf.Max(0,p.remaining-Mathf.Max(0,dt)*(1+helpers.FindAll(h=>h.project==p&&!h.arriving).Count));if(p.remaining>0)continue;
                 if(p.fort!=null)OpenBreach(p.fort,p.cutFrom,p.cutTo);else CreateLine(p.points,p.side,p.owner,p.level,p.lengthMeters);Finish(p);projects.RemoveAt(i);
             }
             TickRemovals(dt);
@@ -105,18 +125,7 @@ namespace CampaignDemo
         public Fortification CreateLine(Vector3[] points,Vector3 side,string owner,int level,float lengthMeters)
         {
             var g=new GameObject("整条防御线");g.transform.position=points[0];var f=g.AddComponent<Fortification>();f.ownerId=owner;f.lineGroupId=Guid.NewGuid().ToString("N");f.level=level;f.radius=Rules.fortificationRadius;f.linePoints=(Vector3[])points.Clone();f.engineerSide=side;f.builtLengthMeters=lengthMeters;f.SetLineHealth(lengthMeters*Rules.lineHealthPerMeter*Mathf.Pow(campaign.rules.fortLevelHealthFactor,level));campaign.combined.fortifications.Add(f);
-            Draw(g.transform,points,Rules.lineVisualWidth,Rules.lineColor,21);
-            float total=Length(points);float spacing=Mathf.Max(.001f,Rules.parapetSpacing);
-            for(float distance=spacing/2;distance<total;distance+=spacing)
-            {
-                Vector3 at=Along(points,distance),before=Along(points,Mathf.Max(0,distance-spacing*.15f)),after=Along(points,Mathf.Min(total,distance+spacing*.15f));
-                Vector3 tangent=(after-before).normalized,normal=new Vector3(-tangent.y,tangent.x);if(Vector3.Dot(normal,side-at)<0)normal=-normal;
-                Draw(g.transform,new[]{at,at+normal*Rules.parapetDepth},Rules.lineVisualWidth,Rules.lineColor,21);
-            }
-            var startTangent=(points[1]-points[0]).normalized;var startNormal=new Vector3(-startTangent.y,startTangent.x);if(Vector3.Dot(startNormal,side-points[0])<0)startNormal=-startNormal;
-            var endTangent=(points[points.Length-1]-points[points.Length-2]).normalized;var endNormal=new Vector3(-endTangent.y,endTangent.x);if(Vector3.Dot(endNormal,side-points[points.Length-1])<0)endNormal=-endNormal;
-            Draw(g.transform,new[]{points[0],points[0]-startNormal*Rules.parapetDepth},Rules.lineVisualWidth,Rules.lineColor,21);
-            Draw(g.transform,new[]{points[points.Length-1],points[points.Length-1]-endNormal*Rules.parapetDepth},Rules.lineVisualWidth,Rules.lineColor,21);
+            g.AddComponent<StaffDefenseLine>().fort=f;
             return f;
         }
         static Vector3 Along(Vector3[] points,float distance){for(int i=1;i<points.Length;i++){float length=Vector2.Distance(points[i-1],points[i]);if(distance<=length)return length>0?Vector3.Lerp(points[i-1],points[i],distance/length):points[i];distance-=length;}return points[points.Length-1];}

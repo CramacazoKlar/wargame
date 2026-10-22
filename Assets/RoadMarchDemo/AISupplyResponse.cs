@@ -4,7 +4,6 @@ namespace CampaignDemo {
  [RequireComponent(typeof(TransportTruck))]
  public sealed class AISupplyResponse:AIUnitResponse {
   public RecoveryPoint sourceCity,destinationCity;
-  public ResourceCollector sourceCollector;
   public ResourceDepot sourceDepot,destinationDepot;
   public RecoveryPoint[] backupSourceCities=new RecoveryPoint[0],backupDestinationCities=new RecoveryPoint[0];
   public bool useRoad=true,repeat=true,waitWhenThreatened=true;
@@ -15,10 +14,10 @@ namespace CampaignDemo {
   enum Phase { Source,Load,Destination,Unload,Complete }
   [ContextMenu("Restart supply task")] public void RestartTask(){var order=GetComponent<AIUnitOrder>();if(order!=null&&order.life!=AITaskLife.Active)order.ResetTask(order.task);phase=Phase.Source;started=false;currentSource=currentDestination=null;retry=threatTime=0;}
   Phase phase;UnityEngine.Object currentSource,currentDestination;float threatTime;bool started;
-  bool Valid(BattleAIController ai,UnityEngine.Object storage){if(storage==null)return false;var campaign=ai.world.campaign;if(storage is RecoveryPoint p)return p.ownerId==ai.playerId&&p.kind==FacilityKind.RecoveryPoint;if(storage is ResourceCollector c)return c.ownerId==ai.playerId&&c.Alive;if(storage is ResourceDepot d)return !d.Removed&&(d.ownerId==ai.playerId||(d.resourcePile&&(!ai.world.fogEnabled||ai.world.VisibleAt(ai.playerId,d.transform.position))));return false;}
-  UnityEngine.Object PickSource(BattleAIController ai){var campaign=ai.world.campaign;UnityEngine.Object[] choices={sourceCollector,sourceDepot,sourceCity};foreach(var c in choices)if(Valid(ai,c)&&campaign.Stock(c)>0)return c;foreach(var c in backupSourceCities)if(Valid(ai,c)&&campaign.Stock(c)>0)return c;return null;}
+  bool Valid(BattleAIController ai,UnityEngine.Object storage){if(storage==null)return false;var campaign=ai.world.campaign;if(storage is RecoveryPoint p)return p.ownerId==ai.playerId&&p.kind==FacilityKind.RecoveryPoint;if(storage is ResourceDepot d)return !d.Removed&&(d.ownerId==ai.playerId||(d.resourcePile&&(!ai.world.fogEnabled||ai.world.VisibleAt(ai.playerId,d.transform.position))));return false;}
+  UnityEngine.Object PickSource(BattleAIController ai){var campaign=ai.world.campaign;UnityEngine.Object[] choices={sourceDepot,sourceCity};foreach(var c in choices)if(Valid(ai,c)&&campaign.Stock(c)>0)return c;foreach(var c in backupSourceCities)if(Valid(ai,c)&&campaign.Stock(c)>0)return c;return null;}
   UnityEngine.Object PickDestination(BattleAIController ai){UnityEngine.Object[] choices={destinationDepot,destinationCity};foreach(var c in choices)if(Valid(ai,c)&&c!=currentSource)return c;foreach(var c in backupDestinationCities)if(Valid(ai,c)&&c!=currentSource)return c;return null;}
-  BattleCommand Transfer(UnityEngine.Object storage,bool load,float amount){var c=new BattleCommand{kind=load?BattleCommandKind.LoadResources:BattleCommandKind.UnloadResources,amount=amount};if(storage is RecoveryPoint p)c.pointId=p.pointId;else if(storage is ResourceCollector collector)c.collectorId=collector.collectorId;else if(storage is ResourceDepot d)c.depotId=d.depotId;return c;}
+  BattleCommand Transfer(UnityEngine.Object storage,bool load,float amount){var c=new BattleCommand{kind=load?BattleCommandKind.LoadResources:BattleCommandKind.UnloadResources,amount=amount};if(storage is RecoveryPoint p)c.pointId=p.pointId;else if(storage is ResourceDepot d)c.depotId=d.depotId;return c;}
   public override void CancelResponse(){base.CancelResponse();phase=Phase.Source;started=false;currentSource=currentDestination=null;threatTime=0;}
   public override bool TickResponse(BattleAIController ai,AIUnitOrder order,List<ArmyInfo> contacts,float dt){
    var truck=GetComponent<TransportTruck>();var unit=truck.Unit;var own=ai.information.GetArmy(ai.playerId,unit.unitId);if(own==null||!own.alive)return false;

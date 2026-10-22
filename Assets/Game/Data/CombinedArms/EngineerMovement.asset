@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: EngineerMovement
   m_EditorClassIdentifier: 
   displayName: "\u5DE5\u5175"
-  speed: 1.5
+  speed: 1.2
   prefab: {fileID: 0}
   freeMarchDefinition: {fileID: 11400000, guid: 4c3db29ecc3266a4c96fe22a1501de83, type: 2}
   icon: {fileID: 0}
   iconSize: {x: 0.8, y: 0.5}
   iconColor: {r: 0.15, g: 0.75, b: 0.95, a: 1}
+  useReferenceTravelTime: 1
+  referenceDistanceMeters: 5000
+  referenceTravelMinutes: 0.5
+  roadSpeedRatio: 1

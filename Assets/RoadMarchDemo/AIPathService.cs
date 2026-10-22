@@ -15,6 +15,12 @@ namespace CampaignDemo
             if(world==null||world.setup==null||unit==null) return null;
             var mover=unit.GetComponent<ArmyRoadMover>();
             if(mover==null) return null;
+            if(LocalTacticalBattle.EnabledFor(world))
+            {
+                var freeMover=unit.GetComponent<ArmyFreeMarchMover>();
+                var route=freeMover==null?null:LocalRoadAStar.Plan(world.setup.freeMarchMap,freeMover.AllowedTerrain,unit.transform.position,destination,Vector3.Distance(unit.transform.position,destination)>12?.4f:.2f,100000);
+                return route==null?null:Result(route,false);
+            }
             if(preferRoad&&world.setup.roadMap!=null)
             {
                 var network=world.setup.roadMap.Network;

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 namespace CampaignDemo
 {
@@ -6,6 +6,9 @@ namespace CampaignDemo
     {
         public FreeMarchMapDefinition definition;
         public RasterWaterMap waterMap;
+        public bool automaticRoadTerrain=true;
+        [Min(.01f)] public float roadTerrainWidth=.5f;
+        RoadMapDefinition cachedRoad;int cachedRoadRevision=-1;float cachedRoadWidth;bool cachedAutomaticRoad;
         TerrainGeometry cachedGeometry;
         FreeMarchMapDefinition cachedDefinition;
         int cachedRevision;
@@ -58,14 +61,27 @@ namespace CampaignDemo
             var geometry=Geometry();
             return geometry!=null&&geometry.CanTraverse(new RoadPoint(a.x,a.y),new RoadPoint(b.x,b.y),access)&&((access&TerrainAccess.Water)!=0||waterMap==null||waterMap.CanTraverse(from,to));
         }
+        public bool SyncBoundsToBackground()
+        {
+            var road=GetComponent<RoadMapRuntime>();
+            if(definition==null||road==null||road.definition==null||road.definition.background==null)return false;
+            var data=road.definition;if(data.backgroundSize.x<=0||data.backgroundSize.y<=0)return false;
+            var target=new Rect(data.backgroundCenter-data.backgroundSize*.5f,data.backgroundSize);
+            if(definition.bounds==target)return false;
+            definition.bounds=target;definition.MarkDirty();InvalidateGeometry();return true;
+        }
         public TerrainGeometry Geometry()
         {
+            SyncBoundsToBackground();
             if(definition==null)
             {
                 if(cachedDefinition!=null||cachedGeometry!=null) { cachedDefinition=null; cachedGeometry=null; unchecked { runtimeVersion++; } }
                 return null;
             }
-            if(cachedGeometry!=null&&cachedDefinition==definition&&cachedRevision==definition.Revision) return cachedGeometry;
+            var roadRuntime=GetComponent<RoadMapRuntime>();var road=roadRuntime==null?null:roadRuntime.definition;
+            int roadRevision=road==null?0:road.Revision;
+            float effectiveWidth=Mathf.Max(roadTerrainWidth,road==null?0:road.roadWidth);
+            if(cachedGeometry!=null&&cachedDefinition==definition&&cachedRevision==definition.Revision&&cachedRoad==road&&cachedRoadRevision==roadRevision&&cachedRoadWidth==effectiveWidth&&cachedAutomaticRoad==automaticRoadTerrain) return cachedGeometry;
             var regions=definition.regions??new FreeMarchMapDefinition.Region[0];
             var geo=new TerrainGeometry{Min=new RoadPoint(definition.bounds.xMin,definition.bounds.yMin),Max=new RoadPoint(definition.bounds.xMax,definition.bounds.yMax),DefaultTerrain=definition.defaultTerrain,Regions=new TerrainGeometry.Region[regions.Length]};
             for(int i=0;i<regions.Length;i++)
@@ -75,11 +91,14 @@ namespace CampaignDemo
                 for(int n=0;n<p.Length;n++) points[n]=new RoadPoint(p[n].x,p[n].y);
                 geo.Regions[i]=new TerrainGeometry.Region{Kind=regions[i].terrain,Polygon=points};
             }
+            geo.roadsOverrideWater=LocalTacticalBattle.EnabledFor(this)||GetComponent<StaffMapCartography>()!=null;
+            geo.SetAutomaticRoads(automaticRoadTerrain?AutomaticRoadTerrain.Build(road,effectiveWidth):new TerrainGeometry.Region[0]);
+            cachedRoad=road;cachedRoadRevision=roadRevision;cachedRoadWidth=effectiveWidth;cachedAutomaticRoad=automaticRoadTerrain;
             cachedDefinition=definition; cachedRevision=definition.Revision; cachedGeometry=geo;
             unchecked { runtimeVersion++; } return geo;
         }
         void OnValidate() { InvalidateGeometry(); }
-        void OnDrawGizmos()
+        void OnDrawGizmosSelected()
         {
             if(definition==null) return;
             foreach(var r in definition.regions??new FreeMarchMapDefinition.Region[0])
@@ -91,5 +110,6 @@ namespace CampaignDemo
         }
     }
 }
+
 
 

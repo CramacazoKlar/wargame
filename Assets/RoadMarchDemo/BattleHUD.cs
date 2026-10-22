@@ -47,7 +47,7 @@ namespace CampaignDemo
             for(int i=0;i<3;i++){int index=i;var b=Button(rightPanel.transform,"",new Vector2(0,-185-i*36),new Vector2(244,30));b.onClick.AddListener(()=>SelectSlot(index));slots.Add(b);}
             var bottom=Panel("Army overview",transform,new Vector2(.5f,0),new Vector2(0,41),new Vector2(1280,82));
             statistics=Text(UI("Statistics",bottom.transform,new Vector2(.5f,.5f),new Vector2(0,13),new Vector2(1240,38)),"",16);
-            hint=Text(UI("Controls",bottom.transform,new Vector2(.5f,.5f),new Vector2(0,-22),new Vector2(1240,24)),"1 沿路行军  |  2 自由行军  |  3 查看与管理  |  WASD 平移 / 右键框选  |  滚轮缩放",15);
+            hint=Text(UI("Controls",bottom.transform,new Vector2(.5f,.5f),new Vector2(0,-22),new Vector2(1240,24)),"Q 自动寻路  |  E 直线行军  |  1 对半 / 2 佯攻 / 3 渗透（再按确认） | R 巡逻 / K 轮换 / H 联防  |  WASD 平移 / 右键框选  |  滚轮缩放",15);
             var switchButton=Button(transform,"切换玩家",new Vector2(0,0),new Vector2(120,34));var sr=switchButton.GetComponent<RectTransform>();sr.anchorMin=sr.anchorMax=new Vector2(1,1);sr.anchoredPosition=new Vector2(-85,-25);switchButton.onClick.AddListener(world.NextPlayer);
             playerLabel=Text(UI("Player",transform,new Vector2(1,1),new Vector2(-220,-25),new Vector2(120,30)),"",17);
             foreach(var u in world.units)RegisterUnit(u);
@@ -57,7 +57,7 @@ namespace CampaignDemo
         public void RegisterUnit(BattleUnit u){if(u!=null&&!unitLabels.ContainsKey(u))unitLabels.Add(u,Text(UI("Personnel "+u.unitId,transform,new Vector2(.5f,.5f),Vector2.zero,new Vector2(200,46)),"",mapLabelFontSize));}
         bool Inspect { get { return world.setup.modes.CurrentMode==MouseCommandMode.Interaction; } }
         void Update()
-        {
+        {if(UnitContextOrders.BlocksInput)return;
             if(world==null||!world.Initialized||!Inspect||!Input.GetMouseButtonDown(0))return;var specialized=GetComponent<CombinedArmsHUD>();if(specialized!=null&&specialized.CapturingInput)return;
             if(EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject())return;
             Vector3 mouse=Input.mousePosition;BattleUnit best=null;float distance=world.setup.settings.selectionPixels;
@@ -95,10 +95,10 @@ namespace CampaignDemo
             }
             foreach(var pair in pointLabels)
             {
-                var p=pair.Key;var b=pair.Value;bool allowed=Inspect&&OverlayAllowed(p.transform.position);b.gameObject.SetActive(allowed);Place(b.GetComponent<RectTransform>(),p.transform.position,new Vector2(0,-23));
+                var p=pair.Key;var b=pair.Value;bool allowed=Inspect&&OverlayAllowed(p.transform.position);b.gameObject.SetActive(allowed&&p.GetComponent<StaffObjectiveMarker>()==null);Place(b.GetComponent<RectTransform>(),p.transform.position,new Vector2(0,-23));
                 var data=information.GetFacility(world.currentPlayer,p.pointId);if(data==null)continue;var title=data.name;bool own=data.own;bool observed=data.observed;
                 if(own){int n=0;foreach(var id in data.stationedUnitIds)if(information.GetArmy(world.currentPlayer,id)?.onMap==false)n++;if(n>0)title+="  ["+n+"]";}
-                var text=b.GetComponentInChildren<Text>();text.text=title;text.fontSize=mapLabelFontSize;text.color=own?new Color(.45f,1,.5f):observed&&!string.IsNullOrEmpty(data.ownerId)?new Color(1,.55f,.45f):new Color(.9f,.86f,.76f);
+                var text=b.GetComponentInChildren<Text>();text.text=title;text.fontSize=mapLabelFontSize;text.color=own?StaffMapStyle.Blue:observed&&!string.IsNullOrEmpty(data.ownerId)?StaffMapStyle.Red:new Color(.9f,.86f,.76f);
                 var icons=pointIcons[p];int slotIndex=0;foreach(var u in world.units)if(own&&u!=null&&u.Alive&&u.Point==p&&!u.OnMap&&slotIndex<icons.Count){var icon=icons[slotIndex];iconUnits[icon]=u;icon.gameObject.SetActive(allowed);var sprite=u.GetComponentInChildren<SpriteRenderer>();icon.transform.Find("Army icon").GetComponent<Image>().sprite=sprite==null?null:sprite.sprite;Place(icon.GetComponent<RectTransform>(),p.transform.position,new Vector2(82+slotIndex*30,-23));slotIndex++;}for(int i=slotIndex;i<icons.Count;i++){icons[i].gameObject.SetActive(false);iconUnits.Remove(icons[i]);}
             }
             RefreshRanges();if(Time.unscaledTime<nextRefresh)return;nextRefresh=Time.unscaledTime+.15f;Refresh();
@@ -114,7 +114,7 @@ namespace CampaignDemo
             if(SelectedUnit!=null)
             {
                 var info=information.GetArmy(world.currentPlayer,SelectedUnit.unitId);details.text=BattleTextFormatter.Army(info);if(info==null||!info.own)return;var extra=GetComponent<CombinedArmsHUD>();if(extra!=null)details.text+=extra.Description(SelectedUnit);
-                escapeButton.gameObject.SetActive(info.canEscape);enterButton.gameObject.SetActive(info.canEnter);repairButton.gameObject.SetActive(info.canRepair);exitButton.gameObject.SetActive(info.canExit);forestHideButton.gameObject.SetActive(info.canHide);forestAttackButton.gameObject.SetActive(info.canToggleAmbush);
+                escapeButton.gameObject.SetActive(info.canEscape);enterButton.gameObject.SetActive(false);repairButton.gameObject.SetActive(info.canRepair);exitButton.gameObject.SetActive(info.canExit);forestHideButton.gameObject.SetActive(info.canHide);forestAttackButton.gameObject.SetActive(info.canToggleAmbush);
                 forestHideButton.GetComponentInChildren<Text>().text=info.hidden==true?"取消藏匿":"进入藏匿";forestAttackButton.GetComponentInChildren<Text>().text=info.ambushEnabled==true?"保持藏匿":"进入攻击状态";repairLabel.text=info.state==ArmyBattleState.Repairing?"取消恢复":"开始恢复";
             }
             else if(SelectedPoint!=null)
@@ -127,9 +127,9 @@ namespace CampaignDemo
         static string Echelon(ArmyEchelon e) { return new[]{"班","排","连","营","团","旅","师","军"}[(int)e]; }
         static string State(ArmyBattleState s) { return new[]{"地图行动","交战","逃跑","进入据点","驻点","恢复中","出点","被消灭"}[(int)s]; }
         GameObject UI(string n,Transform parent,Vector2 anchor,Vector2 at,Vector2 size){var g=new GameObject(n,typeof(RectTransform));g.transform.SetParent(parent,false);var r=(RectTransform)g.transform;r.anchorMin=r.anchorMax=anchor;r.anchoredPosition=at;r.sizeDelta=size;return g;}
-        GameObject Panel(string n,Transform p,Vector2 a,Vector2 at,Vector2 size){var g=UI(n,p,a,at,size);g.AddComponent<Image>().color=new Color(.22f,.16f,.09f,.96f);return g;}
-        Text Text(GameObject g,string value,int size,TextAnchor alignment=TextAnchor.MiddleCenter){var t=g.AddComponent<Text>();t.font=font;t.text=value;t.fontSize=size;t.alignment=alignment;t.color=new Color(.95f,.87f,.68f);t.raycastTarget=false;return t;}
-        Button Button(Transform p,string title,Vector2 at,Vector2 size){var g=Panel(title,p,new Vector2(.5f,.5f),at,size);g.GetComponent<Image>().color=new Color(.38f,.28f,.16f,.97f);var b=g.AddComponent<Button>();Text(UI("Label",g.transform,new Vector2(.5f,.5f),Vector2.zero,size),title,15);return b;}
+        GameObject Panel(string n,Transform p,Vector2 a,Vector2 at,Vector2 size){var g=UI(n,p,a,at,size);g.AddComponent<Image>().color=StaffMapStyle.Panel;return g;}
+        Text Text(GameObject g,string value,int size,TextAnchor alignment=TextAnchor.MiddleCenter){var t=g.AddComponent<Text>();t.font=font;t.text=value;t.fontSize=size;t.alignment=alignment;t.color=StaffMapStyle.Ink;t.raycastTarget=false;return t;}
+        Button Button(Transform p,string title,Vector2 at,Vector2 size){var g=Panel(title,p,new Vector2(.5f,.5f),at,size);g.GetComponent<Image>().color=StaffMapStyle.Inset;var b=g.AddComponent<Button>();Text(UI("Label",g.transform,new Vector2(.5f,.5f),Vector2.zero,size),title,15);return b;}
         void RefreshRanges()
         {
             foreach(var u in world.units)
@@ -160,6 +160,7 @@ namespace CampaignDemo
         void OnDestroy(){if(world!=null){world.PlayerChanged-=ClearSelection;world.UnitRegistered-=RegisterUnit;}foreach(var lines in rangeCircles.Values)foreach(var line in lines)if(line!=null)Destroy(line.gameObject);if(rangeMaterial!=null)Destroy(rangeMaterial);}
     }
 }
+
 
 
 

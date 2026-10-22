@@ -19,3 +19,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   iconSize: {x: 0.8, y: 0.5}
   iconColor: {r: 0.15, g: 0.75, b: 0.95, a: 1}
+  useReferenceTravelTime: 1
+  referenceDistanceMeters: 5000
+  referenceTravelMinutes: 0.5
+  roadSpeedRatio: 1

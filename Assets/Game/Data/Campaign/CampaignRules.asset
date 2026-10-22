@@ -40,18 +40,19 @@ MonoBehaviour:
   - 5103
   - 15309
   cargoCapacity:
-  - 100
-  - 300
-  - 900
-  - 2700
-  - 8100
-  - 24300
-  - 72900
-  - 218700
+  - 10000
+  - 30000
+  - 90000
+  - 270000
+  - 810000
+  - 2430000
+  - 7290000
+  - 21870000
   lossPerStrengthPerSecond: 0.02
   engineerOrdinaryAttackMultiplier: 0.1
   integrationStep: 0.01
-  distanceDecay: 0.33333334
+  distanceDecay: 0.6666667
+  contactWeightFloor: 0.44444445
   vehicleHealthPerEquivalent: 100
   movingIncomingMultiplier: 1.2
   retreatLossFraction: 0.075
@@ -70,7 +71,7 @@ MonoBehaviour:
   encirclementCap: 2
   fortHealth: 100
   fortMovementMultiplier: 0.5
-  fortAttackMultiplier: 1.4
+  fortAttackMultiplier: 1.3
   fortArtilleryProtection: 0.5
   shellFortDamageShare: 0.5
   fortLevelCount: 3
@@ -83,16 +84,9 @@ MonoBehaviour:
   warehouseCaptureRadius: 0.7
   warehouseInteractionRadius: 0.8
   warehouseCaptureSeconds: 5
-  warehouseBuildCost: 0
+  warehouseBuildCost: 20000
   warehouseBuildRadius: 0.25
   transportInteractionRadius: 0.8
-  collectorBuildCost: 100
-  collectorInterval: 5
-  collectorBatch: 50
-  collectorHealth: 500
-  collectorFootprint: {x: 0.3, y: 0.3}
-  artilleryDeploySeconds: 2
-  artilleryPackSeconds: 2
   placementPreviewRadius: 0.3
   unloadSearchSamples: 24
   unloadDirections: 8
@@ -101,5 +95,4 @@ MonoBehaviour:
 
   artilleryDamagePerStrength: 0.2
   shellMaximumLossFraction: 0.15
-  shellCollectorsShareStructureBudget: 1
 

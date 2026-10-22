@@ -9,10 +9,12 @@ namespace CampaignDemo.Editor
     {
         bool painting;
         int previous=-1;
+        int deleteNodeIndex;
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
             var root=(RoadMapRuntime)target;
+            if(GUILayout.Button("打开态势地图工具（双线道路 / 桥梁 / 森林 / 弯曲山地）"))StaffMapAuthoringWindow.Open();
             if(root.definition==null)
             {
                 if(GUILayout.Button("Create map asset"))
@@ -32,25 +34,19 @@ namespace CampaignDemo.Editor
             bool next=GUILayout.Toggle(painting,"Paint roads in Scene view","Button");
             if(next!=painting) { painting=next; previous=-1; SceneView.RepaintAll(); }
             if(GUILayout.Button("Start another road")) { previous=-1; SceneView.RepaintAll(); }
+            if(GUILayout.Button("Frame map in Scene view")) SceneMapPreview.Frame(root);
+            deleteNodeIndex=EditorGUILayout.IntField("Node to delete",deleteNodeIndex);
+            using(new EditorGUI.DisabledScope(root.definition.nodes==null||deleteNodeIndex<0||deleteNodeIndex>=root.definition.nodes.Length))
+            if(GUILayout.Button("Delete node and connected roads")){Undo.RecordObject(root.definition,"Delete road node");root.definition.RemoveNode(deleteNodeIndex);EditorUtility.SetDirty(root.definition);previous=-1;SceneView.RepaintAll();}
             if(GUILayout.Button("Edit map data / background")) Selection.activeObject=root.definition;
             EditorGUILayout.HelpBox("Painting: left-click adds nodes. Click an existing node to connect a junction. Esc ends the stroke. Alt navigation remains available. Disable painting to drag nodes.",MessageType.Info);
         }
         void OnSceneGUI()
         {
+            if(StaffMapAuthoringWindow.Controls((RoadMapRuntime)target))return;
             if(Application.isPlaying) return;
             var root=(RoadMapRuntime)target; var map=root.definition;
             if(map==null) return;
-            if(map.background!=null)
-            {
-                // Background preview while tracing roads in a 2D Scene view.
-                var half=map.backgroundSize*0.5f;
-                var a=HandleUtility.WorldToGUIPoint(root.transform.TransformPoint(map.backgroundCenter+new Vector2(-half.x,half.y)));
-                var b=HandleUtility.WorldToGUIPoint(root.transform.TransformPoint(map.backgroundCenter+new Vector2(half.x,-half.y)));
-                var rect=Rect.MinMaxRect(Mathf.Min(a.x,b.x),Mathf.Min(a.y,b.y),Mathf.Max(a.x,b.x),Mathf.Max(a.y,b.y));
-                var spriteRect=map.background.textureRect; var texture=map.background.texture;
-                var uv=new Rect(spriteRect.x/texture.width,spriteRect.y/texture.height,spriteRect.width/texture.width,spriteRect.height/texture.height);
-                Handles.BeginGUI(); GUI.DrawTextureWithTexCoords(rect,texture,uv); Handles.EndGUI();
-            }
             var nodes=map.nodes??new Vector2[0];
             Handles.color=new Color(0.1f,0.6f,0.9f);
             foreach(var link in map.connections??new RoadMapDefinition.Connection[0])
@@ -65,7 +61,7 @@ namespace CampaignDemo.Editor
                     if(EditorGUI.EndChangeCheck())
                     {
                         Undo.RecordObject(map,"Move road node"); var local=root.transform.InverseTransformPoint(moved);
-                        map.nodes[i]=new Vector2(local.x,local.y); EditorUtility.SetDirty(map);
+                        map.nodes[i]=new Vector2(local.x,local.y); map.MarkDirty(); EditorUtility.SetDirty(map);
                     }
                 }
             }
@@ -101,7 +97,7 @@ namespace CampaignDemo.Editor
                 foreach(var l in links) if((l.a==previous&&l.b==picked)||(l.a==picked&&l.b==previous)) exists=true;
                 if(!exists) { Array.Resize(ref links,links.Length+1); links[links.Length-1]=new RoadMapDefinition.Connection(previous,picked); map.connections=links; }
             }
-            previous=picked; EditorUtility.SetDirty(map); e.Use(); SceneView.RepaintAll();
+            previous=picked; map.MarkDirty(); EditorUtility.SetDirty(map); e.Use(); SceneView.RepaintAll();
         }
     }
 }

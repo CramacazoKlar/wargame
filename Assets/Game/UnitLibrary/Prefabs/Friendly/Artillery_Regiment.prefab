@@ -185,8 +185,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ownerId: A
   armyLabel: 
-  visionRadius: 3
-  attackRadius: 1.5
+  visionRadius: 1.5
+  attackRadius: 0.75
   extraStatus: 
 --- !u!114 &3426068411633410191
 MonoBehaviour:

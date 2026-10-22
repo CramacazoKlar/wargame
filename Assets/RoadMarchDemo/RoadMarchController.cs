@@ -19,7 +19,7 @@ namespace CampaignDemo
         public MouseModeStateMachine modes;
         [Min(0)] public float topInterfacePixels=100;
         public ArmyRoadMover Selected { get { return selection==null?null:selection.Selected; } }
-        public string Status { get; private set; }="Press 1, click an army and draw along roads.";
+        public string Status { get; private set; }="Press Q, click an army and draw along roads.";
         public bool ModeEnabled { get { return modes!=null&&modes.CurrentMode==MouseCommandMode.RoadMarch; } }
         readonly List<RoadPoint> draft=new List<RoadPoint>();
         bool drawing,invalid;
@@ -37,30 +37,36 @@ namespace CampaignDemo
         { if(modes!=null) modes.Changed-=ModeChanged; modes=state; if(modes!=null) modes.Changed+=ModeChanged; }
         void OnEnable() { if(modes!=null) modes.Changed+=ModeChanged; }
         void ModeChanged(MouseCommandMode oldMode,MouseCommandMode next) { if(drawing) Cancel(); }
+        public void CancelDraft(){Cancel();}
         void Update()
-        {
-            if(mapCamera==null||!mapCamera.orthographic||map==null||map.Network==null||settings==null||preview==null||selection==null||modes==null)
+        {if(UnitContextOrders.BlocksInput)return; if(LocalTacticalBattle.EnabledFor(this))return;
+            if(mapCamera==null||map==null||map.Network==null||settings==null||preview==null||selection==null||modes==null)
             { Cancel(); Debug.LogError("RoadMarchController: required references unavailable.",this); enabled=false; return; }
             if(drawing&&(planningArmy==null||planningArmy.Motor==null||!planningArmy.isActiveAndEnabled||!planningArmy.Motor.isActiveAndEnabled||planningArmy.Motor.MovementLocked)) { Cancel(); return; }
             if(!ModeEnabled) return;
             if(selection.HasBoxSelection&&selection.SelectedArmies.Count>0){if(drawing)Cancel();return;}
             if(Input.GetMouseButton(1)) { if(drawing) Cancel(); return; }
+            if(GetComponent<SelectedArmyHotkeys>()?.SuppressPointer==true)return;
             if(Input.GetKeyDown(KeyCode.Escape)) Cancel();
             var raw=Input.mousePosition; var mouse=drawing?strokeAnchor+(raw-strokeOrigin)*Mathf.Clamp(planningSensitivity,.25f,2):raw;
             bool blocked=raw.y>Screen.height-topInterfacePixels||
                 (EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject());
-            var world=mapCamera.ScreenToWorldPoint(new Vector3(mouse.x,mouse.y,-mapCamera.transform.position.z));
+            var world=MapProjection.Ground(mapCamera,new Vector2(mouse.x,mouse.y));
             var cursor=new RoadPoint(world.x,world.y);
             double scale=2*mapCamera.orthographicSize/Math.Max(1,Screen.height);
             double tolerance=settings.snapPixels*scale;
             if(Input.GetMouseButtonDown(0)&&!blocked)
             {
-                selection.SelectAt(mouse);
+                bool clickedArmy=selection.SelectAt(mouse,true);
                 if(Selected==null) { Status="Select a blue army first."; return; }
                 var p=mapCamera.WorldToScreenPoint(Selected.transform.position);
-                if(Vector2.Distance(new Vector2(p.x,p.y),new Vector2(mouse.x,mouse.y))>settings.startPixels)
-                { Status="Start drawing near the selected army."; return; }
-                if(Selected.Motor==null||!Selected.isActiveAndEnabled||!Selected.Motor.isActiveAndEnabled||Selected.Motor.MovementLocked) { Status="Army movement is unavailable."; return; }
+                if(!clickedArmy)
+                {
+                    var service=GetComponent<BattleCommandService>();var unit=Selected.GetComponent<BattleUnit>();
+                    if(service!=null&&unit!=null){var result=service.Submit(new BattleCommand{playerId=service.world.currentPlayer,unitId=unit.unitId,kind=BattleCommandKind.RoadDestination,destination=world});Status=result.pending?"目的地已发送，等待确认":result.accepted?"已沿道路规划路线":result.reason;if(!result.accepted&&!result.pending)GetComponent<UnitContextOrders>()?.RejectMovement(Status);}
+                    return;
+                }
+                if(Selected.Motor==null||!Selected.isActiveAndEnabled||!Selected.Motor.isActiveAndEnabled||Selected.Motor.MovementLocked) { Status="Army movement is unavailable.";GetComponent<UnitContextOrders>()?.RejectMovement("当前部队无法移动"); return; }
                 planningArmy=Selected;
                 strokeOrigin=raw; strokeAnchor=p; strokeStarted=false; drawing=true; invalid=false; extended=false; planningArmy.PlanningPaused=true;
                 planningArmy.RefreshRoad();
@@ -77,7 +83,7 @@ namespace CampaignDemo
                 if(blocked) Fail(); else Sample(cursor,tolerance);
                 if(!invalid&&extended&&draft.Count>1)
                 { Status=SubmitRoute(planningArmy,draft)?"Route confirmed.":"Route blocked. Previous order retained."; }
-                else Status=invalid?"Invalid stroke. Previous order retained.":"Army selected. Draw a route.";
+                else Status=invalid?"Invalid stroke. Previous order retained.":"Army selected. Draw a route.";if(invalid)GetComponent<UnitContextOrders>()?.RejectMovement(Status);
                 Finish();
             }
         }

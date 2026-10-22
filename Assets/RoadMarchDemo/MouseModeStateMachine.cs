@@ -11,12 +11,14 @@ namespace CampaignDemo
         [SerializeField] MouseCommandMode currentMode;
         public MouseCommandMode CurrentMode { get { return currentMode; } }
         public TacticalMapLayer DisplayLayer { get; private set; }
+        public static MouseCommandMode MarchHotkey(KeyCode key){return key==KeyCode.Q?MouseCommandMode.RoadMarch:key==KeyCode.E?MouseCommandMode.FreeMarch:MouseCommandMode.None;}
         public event Action<TacticalMapLayer> DisplayChanged;
         public event Action<MouseCommandMode,MouseCommandMode> Changed;
         public void EnterInspectionMode() { SetMode(MouseCommandMode.Interaction); }
         public void SetMode(MouseCommandMode mode)
         {
             if(linkedWorld==null)linkedWorld=GetComponent<BattleWorld>();if(linkedWorld!=null&&linkedWorld.SimulationEnded)mode=MouseCommandMode.None;
+            if(LocalTacticalBattle.EnabledFor(this)&&mode==MouseCommandMode.Interaction)mode=MouseCommandMode.RoadMarch;
             if(currentMode==mode) return;
             var old=currentMode; currentMode=mode;
             if(Changed!=null) Changed(old,mode);
@@ -28,13 +30,15 @@ namespace CampaignDemo
         void Update()
         {if(linkedWorld==null)linkedWorld=GetComponent<BattleWorld>();if(linkedWorld!=null&&linkedWorld.SimulationEnded)return;
             if(Input.GetKeyDown(KeyCode.Tab)&&!Input.GetKey(KeyCode.LeftAlt)&&!Input.GetKey(KeyCode.RightAlt)){var world=GetComponent<BattleWorld>();if(world!=null&&world.Initialized)world.NextPlayer();}
-            if(Input.GetKeyDown(KeyCode.Alpha1)||Input.GetKeyDown(KeyCode.Keypad1)) SetMode(MouseCommandMode.RoadMarch);
-            else if(Input.GetKeyDown(KeyCode.Alpha2)||Input.GetKeyDown(KeyCode.Keypad2)) SetMode(MouseCommandMode.FreeMarch);
-            else if(Input.GetKeyDown(KeyCode.Alpha3)||Input.GetKeyDown(KeyCode.Keypad3))
+            var editing=UnityEngine.EventSystems.EventSystem.current==null?null:UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;if(editing!=null&&editing.GetComponentInParent<UnityEngine.UI.InputField>()!=null)return;
+            if(Input.GetKeyDown(KeyCode.Q)) SelectMarch(MarchHotkey(KeyCode.Q));
+            else if(Input.GetKeyDown(KeyCode.E)) SelectMarch(MarchHotkey(KeyCode.E));
+            else if(Input.GetKeyDown(KeyCode.V))
             {
-                EnterInspectionMode();
+                if(!LocalTacticalBattle.EnabledFor(this))EnterInspectionMode();
             }
         }
+        public void SelectMarch(MouseCommandMode mode){GetComponent<UnitContextOrders>()?.CancelSplitPreview();GetComponent<LocalPrototypeOrders>()?.CancelDraft();GetComponent<LocalCoordinatedOrders>()?.CancelPicking();SetMode(mode);GetComponent<CampaignHUD>()?.SetCommandFeedback(mode==MouseCommandMode.RoadMarch?"A* 自动寻路：点击目的地立即出发，优先道路并绕开不可通行地形":"直线行军：点击目的地立即出发");UnitContextOrders.ConsumePointer();}
     }
 }
 

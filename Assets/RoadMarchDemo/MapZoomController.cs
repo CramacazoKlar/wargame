@@ -21,7 +21,8 @@ namespace CampaignDemo
         public bool blockWheelWhileDrawing=true;
         public float CurrentSize { get { return mapCamera==null?0:mapCamera.orthographicSize; } }
         public float NormalizedZoom { get { return Range.SliderFromSize(CurrentSize); } }
-        MapZoomRange Range { get { return new MapZoomRange(minimumSize,maximumSize); } }
+        MapPanController boundedPan;
+        MapZoomRange Range { get { float max=maximumSize;if(boundedPan==null)boundedPan=GetComponent<MapPanController>();if(boundedPan!=null&&boundedPan.enabled&&boundedPan.useBounds&&boundedPan.keepViewportInsideMap&&mapCamera!=null){boundedPan.RefreshMapBounds();var b=boundedPan.cameraCenterBounds;max=Mathf.Min(max,Mathf.Min(b.height*.5f,b.width*.5f/Mathf.Max(.01f,mapCamera.aspect)));}return new MapZoomRange(Mathf.Min(minimumSize,max),max); } }
         Slider boundSlider;
         Button boundButton;
         Canvas sliderCanvas;
@@ -36,7 +37,7 @@ namespace CampaignDemo
         void Start()
         {
             started=true; ResolveCamera();
-            if(mapCamera==null||!mapCamera.orthographic)
+            if(mapCamera==null)
             { Debug.LogError("MapZoomController requires the orthographic map camera.",this); enabled=false; return; }
             SetSize(startAtMiddle?Range.MiddleSize:CurrentSize);
         }
@@ -69,7 +70,7 @@ namespace CampaignDemo
         void OnDisable() { UnbindUI(); }
         void Update()
         {
-            if(mapCamera==null||!mapCamera.orthographic) return;
+            if(mapCamera==null) return;
             // Supports references and limits edited at runtime as well.
             if(boundSlider!=zoomSlider||boundButton!=resetNode) BindUI();
             float delta=Input.mouseScrollDelta.y;
@@ -94,8 +95,9 @@ namespace CampaignDemo
         public void ResetToMiddle() { SetSize(Range.MiddleSize); }
         public void SetSize(float value)
         {
-            if(mapCamera==null||!mapCamera.orthographic) return;
+            if(mapCamera==null) return;
             var range=Range; mapCamera.orthographicSize=range.ClampSize(value);
+            if(boundedPan!=null&&boundedPan.enabled)boundedPan.ConstrainView();var tabletop=GetComponent<TabletopCamera>();if(tabletop!=null)tabletop.Apply();
             if(boundSlider!=null) boundSlider.SetValueWithoutNotify(range.SliderFromSize(mapCamera.orthographicSize));
         }
     }

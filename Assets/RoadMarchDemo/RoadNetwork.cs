@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace CampaignDemo
 {
     // Pure data and geometry. The visible map is never used for navigation.
-    public struct RoadPoint
+    [Serializable] public struct RoadPoint
     {
         public double X, Y;
         public RoadPoint(double x, double y) { X = x; Y = y; }

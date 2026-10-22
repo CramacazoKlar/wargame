@@ -58,8 +58,8 @@ MonoBehaviour:
   transitionSeconds: 2
   capacity: 3
   repairFractionPerSecond: 0.02
-  resourceStock: 4000
-  resourcePerPerson: 1
+  resourceStock: 400000
+  resourcePerPerson: 100
   exitOffset: {x: 0.3, y: 0}
 --- !u!212 &5235548736243193922
 SpriteRenderer:
@@ -81,7 +81,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: a008263acc7164249b808bb648317508, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

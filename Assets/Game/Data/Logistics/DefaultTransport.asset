@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: DefaultTransport
   m_EditorClassIdentifier: 
   capacityByEchelon:
-  - 100
-  - 300
-  - 900
-  - 2700
-  - 8100
-  - 24300
-  - 72900
-  - 218700
-  buildCost: 100
+  - 10000
+  - 30000
+  - 90000
+  - 270000
+  - 810000
+  - 2430000
+  - 7290000
+  - 21870000
+  buildCost: 20000
   buildCostPerEchelon: 3.3
-  buildSeconds: 5
+  buildSeconds: 30
   loadingRadius: 0.6

@@ -23,7 +23,7 @@ namespace CampaignDemo
         readonly List<Job> jobs=new List<Job>();
         public IReadOnlyList<Job> Jobs {get{return jobs;}}
         void Awake(){world=GetComponent<BattleWorld>();}
-        void Update(){Tick(Time.deltaTime);}
+        void Update(){if(LocalPvpSession.Active==null)Tick(Time.deltaTime);}
         CityProductionRules Config {get{if(rules==null)rules=Resources.Load<CityProductionRules>("CityProductionRules");return rules;}}
         AIBasicProfile AutoConfig {get{var c=GetComponent<AIBasicCommander>();return c==null?null:c.profile;}}
         GameObject Prefab(UnitRole role){return Config==null?null:role==UnitRole.Infantry?Config.infantryPrefab:Config.Find(role)?.prefab;}
@@ -49,7 +49,8 @@ namespace CampaignDemo
             if(world==null||!world.Initialized||world.SimulationEnded)return CityActionQuote.No("战场未开始或已经结束");
             if(p==null)return CityActionQuote.No("尚未配置城市生产规则");
             if(level<0||level>7||count<1||count>Mathf.Clamp(p.maximumQueuedPerCity,1,10))return CityActionQuote.No("编制或数量无效");
-            if(Array.IndexOf(world.players,player)<0||city==null||city.ownerId!=player||city.kind!=FacilityKind.RecoveryPoint)return CityActionQuote.No("只能使用己方城市");
+            if(!CityProductionRules.AllowsEchelon(role,echelon))return CityActionQuote.No(LevelUnitAvailability.Name(role)+"最多生产到"+BattleTextFormatter.Echelon(CityProductionRules.MaximumEchelon(role)));
+            if(Array.IndexOf(world.players,player)<0||city==null||city.isRepairSite||city.ownerId!=player||city.kind!=FacilityKind.RecoveryPoint)return CityActionQuote.No("只能使用己方城市");
             var ai=GetComponent<BattleAIController>();var automation=AutoConfig;
             if(automated&&(player!=BattleFactions.RedPlayerId||ai==null||!ai.CanThink||automation==null||!automation.recruitInfantry||count!=1||role!=UnitRole.Infantry))return CityActionQuote.No("自动造兵未开启");
             if(!LevelUnitAvailability.Allowed(world,role))return CityActionQuote.No("本关未开放该兵种");
@@ -91,6 +92,7 @@ namespace CampaignDemo
             {if(job.city!=null&&job.city.ownerId==owner)job.city.resourceStock+=job.paidCost;jobs.Remove(job);}
             Status="已取消自动造兵，退回未完成订单费用";
         }
+        public void ApplyNetworkJobs(List<PvpProduction> incoming){jobs.Clear();foreach(var data in incoming){if(data.logistics)continue;RecoveryPoint city=null;foreach(var p in world.points)if(p.pointId==data.city)city=p;if(city!=null)jobs.Add(new Job{id=data.id,role=data.role,city=city,owner=data.owner,echelon=data.echelon,prefab=LocalPvpReplication.Prefab(data.role),paidCost=data.cost,remaining=data.remaining});}}
         public void Tick(float dt)
         {
             if(world==null)world=GetComponent<BattleWorld>();

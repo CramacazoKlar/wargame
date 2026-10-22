@@ -19,7 +19,7 @@ namespace CampaignDemo
         {
             Cancel();if(selection==null||!selection.HasBoxSelection||World==null||World.SimulationEnded)return false;
             mode=requestedMode;if(mode!=MouseCommandMode.RoadMarch&&mode!=MouseCommandMode.FreeMarch)return false;
-            requestedCount=selection.SelectedArmies.Count;planning.AddRange(selection.SelectedArmies.Where(a=>a.Motor!=null&&a.GetComponent<BattleUnit>().CanMove));if(planning.Count==0){Status="框选部队当前无法移动";return false;}
+            requestedCount=selection.SelectedArmies.Count;planning.AddRange(selection.SelectedArmies.Where(a=>a.Motor!=null&&a.GetComponent<BattleUnit>().CanMove));if(planning.Count==0){Status="框选部队当前无法移动";GetComponent<UnitContextOrders>()?.RejectMovement(Status);return false;}
             // Freeze each member's offset before drawing so routes translate the formation.
             var center=Vector3.zero;foreach(var army in planning)center+=army.transform.position;center/=planning.Count;
             foreach(var army in planning){formationOffsets[army]=army.transform.position-center;army.PlanningPaused=true;}points.Add(new RoadPoint(point.x,point.y));drawing=true;Status="松开左键确认框选部队路线";ShowPreview();return true;
@@ -34,7 +34,7 @@ namespace CampaignDemo
                 var path=BuildPath(army,mode,points);if(path==null||path.Count<2)continue;
                 var result=commands.Submit(new BattleCommand{playerId=World.currentPlayer,unitId=unit.unitId,kind=mode==MouseCommandMode.RoadMarch?BattleCommandKind.RoadRoute:BattleCommandKind.FreeRoute,route=path});if(result.accepted)accepted++;
             }
-            int total=requestedCount;Cancel();Status="已向 "+accepted+" / "+total+" 支部队下达移动命令";return accepted;
+            int total=requestedCount;Cancel();Status="已向 "+accepted+" / "+total+" 支部队下达移动命令";if(accepted<total)GetComponent<UnitContextOrders>()?.RejectMovement(Status+"，部分路线不可通行");return accepted;
         }
         public List<RoadPoint> BuildPath(ArmyRoadMover army,MouseCommandMode requestedMode,IList<RoadPoint> cursorPoints)
         {
@@ -58,7 +58,7 @@ namespace CampaignDemo
             else
             {
                 var free=army.GetComponent<ArmyFreeMarchMover>();if(free==null)return null;
-                foreach(var point in destinations){var from=result[result.Count-1];var leg=ConstructionNavigation.Plan(World.setup.freeMarchMap,free.AllowedTerrain,new Vector3((float)from.X,(float)from.Y),new Vector3((float)point.X,(float)point.Y),.35f,40000);if(leg==null)return null;foreach(var step in leg)RoadNetwork.Append(result,step);}
+                var target=destinations[destinations.Count-1];if(!free.CanTraverse(World.setup.freeMarchMap,result[0],target))return null;RoadNetwork.Append(result,target);
             }
             return result;
         }
@@ -69,12 +69,14 @@ namespace CampaignDemo
         }
         public void Cancel(){foreach(var army in planning)if(army!=null)army.PlanningPaused=false;planning.Clear();formationOffsets.Clear();points.Clear();drawing=false;if(preview!=null)preview.Clear();Status="路线草稿已取消";}
         void Update()
-        {
+        {if(UnitContextOrders.BlocksInput)return; if(LocalTacticalBattle.EnabledFor(this))return;
             if(selection==null)selection=GetComponent<ArmySelection>();var world=World;if(world==null||!world.Initialized||selection==null)return;var current=world.setup.modes.CurrentMode;
             if(drawing&&(!selection.HasBoxSelection||current!=mode||selection.IsBoxSelecting||Input.GetMouseButton(1)||world.SimulationEnded)){Cancel();return;}
             if(!selection.HasBoxSelection||selection.SelectedArmies.Count==0||world.SimulationEnded)return;
             if(current!=MouseCommandMode.RoadMarch&&current!=MouseCommandMode.FreeMarch)return;
-            bool ui=EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject();var mouse=Input.mousePosition;var cursor=selection.mapCamera.ScreenToWorldPoint(new Vector3(mouse.x,mouse.y,-selection.mapCamera.transform.position.z));cursor.z=0;
+            bool ui=EventSystem.current!=null&&EventSystem.current.IsPointerOverGameObject();var mouse=Input.mousePosition;var cursor=MapProjection.Ground(selection.mapCamera,new Vector2(mouse.x,mouse.y));cursor.z=0;
+            if(GetComponent<SelectedArmyHotkeys>()?.SuppressPointer==true)return;
+            if(current==MouseCommandMode.FreeMarch){if(Input.GetMouseButtonDown(0)&&!ui&&Begin(cursor,current))Commit();return;}
             if(Input.GetMouseButtonDown(0)&&!ui)Begin(cursor,current);
             if(drawing&&Input.GetMouseButton(0)&&!ui)Append(cursor);
             if(drawing&&Input.GetMouseButtonUp(0)){if(ui)Cancel();else{Append(cursor,true);Commit();}}
@@ -82,3 +84,4 @@ namespace CampaignDemo
         void OnDisable(){if(subscribed!=null)subscribed.Changed-=ModeChanged;Cancel();}void OnDestroy(){if(preview!=null)Destroy(preview.gameObject);}
     }
 }
+

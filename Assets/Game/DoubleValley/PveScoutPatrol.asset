@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 976fbd7a23d13b04087bdac178641bb3, type: 3}
+  m_Name: PveScoutPatrol
+  m_EditorClassIdentifier: 
+  kind: 1
+  requireActivation: 0
+  arrivalAction: 1
+  missingMemberAction: 1
+  useRoad: 0
+  waypoints:
+  - {x: 42.49247, y: 0.42460442}
+  - {x: 16.680763, y: 20.956354}
+  arrivalDistance: 0.08
+  reactionSeconds: 1
+  clearContactSeconds: 1
+  retrySeconds: 2

@@ -8,11 +8,19 @@ namespace CampaignDemo
     {
         public bool PlanningPaused { get; set; }
         public bool MovementLocked { get; set; }
-        public void Stop() { route.Clear();next=0;CurrentSpeed=0;PlanningPaused=false;Blocked=false;if(view!=null)view.Clear(); }
+        float nudgeSpeed=-1;
+        public void SetNudgeSpeed(float value){nudgeSpeed=Mathf.Max(0,value);}
+        public void Stop() { nudgeSpeed=-1;route.Clear();next=0;CurrentSpeed=0;PlanningPaused=false;Blocked=false;if(view!=null)view.Clear(); }
         public void SetRouteVisible(bool visible) { if(view!=null){var line=view.GetComponent<LineRenderer>();if(line!=null)line.enabled=visible;} }
         public List<RoadPoint> RemainingRoute(){var result=new List<RoadPoint>();if(!IsMoving)return result;var at=transform.position;result.Add(new RoadPoint(at.x,at.y));for(int i=next;i<route.Count;i++)if(RoadPoint.Distance(result[result.Count-1],route[i])>.00001)result.Add(route[i]);return result;}
         public List<RoadPoint> CopyRoute(){return new List<RoadPoint>(route);}
-        public bool IsMoving { get { return next<route.Count; } }
+        // Immutable visual anchors for the currently accepted movement order.
+        public uint ArrowOrderRevision {get;private set;}
+        public Vector2 ArrowOrderStart {get;private set;}
+        public Vector2 ArrowOrderEnd {get;private set;}
+        public Vector2 ArrowOrderDirection {get;private set;}
+        bool networkMoving;
+        public bool IsMoving { get { return LocalPvpSession.Active!=null&&!LocalPvpSession.Active.IsHost?networkMoving:next<route.Count; } }
         public bool Blocked { get; private set; }
         List<RoadPoint> route=new List<RoadPoint>();
         int next;
@@ -43,7 +51,10 @@ namespace CampaignDemo
             if(validator!=null&&!Validate(points,1,start,validator)) return false;
             var prepared=routePreparer==null?new List<RoadPoint>(points):routePreparer(points);
             if(prepared==null||prepared.Count<2) return false;
-            route=prepared; next=1; speed=speedProvider; canMove=validator;
+            ArrowOrderStart=new Vector2(at.x,at.y);var last=prepared[prepared.Count-1];ArrowOrderEnd=new Vector2((float)last.X,(float)last.Y);ArrowOrderDirection=Vector2.zero;
+            for(int i=1;i<prepared.Count;i++){var delta=new Vector2((float)prepared[i].X,(float)prepared[i].Y)-ArrowOrderStart;if(delta.sqrMagnitude>.00000001f){ArrowOrderDirection=delta.normalized;break;}}
+            unchecked{ArrowOrderRevision++;}
+            nudgeSpeed=-1;route=prepared; next=1; speed=speedProvider; canMove=validator;
             prepareRoute=routePreparer; legSpeed=legSpeedProvider; legStart=start;
             MovementMode=movementMode;
             validationVersion=versionProvider; validatedVersion=versionProvider==null?0:versionProvider();
@@ -54,10 +65,12 @@ namespace CampaignDemo
             for(int i=first;i<points.Count;i++) { if(!validator(from,points[i])) return false; from=points[i]; }
             return true;
         }
-        void RefreshArrow(){arrowRoute.Clear();var at=transform.position;arrowRoute.Add(new RoadPoint(at.x,at.y));for(int i=next;i<route.Count;i++)if(RoadPoint.Distance(arrowRoute[arrowRoute.Count-1],route[i])>.00001)arrowRoute.Add(route[i]);view.ShowArrow(arrowRoute);}
+        void RefreshArrow(){if(MergedMovementArrows.Owns(this)){if(view!=null)view.Clear();return;}arrowRoute.Clear();var at=transform.position;arrowRoute.Add(new RoadPoint(at.x,at.y));for(int i=next;i<route.Count;i++)if(RoadPoint.Distance(arrowRoute[arrowRoute.Count-1],route[i])>.00001)arrowRoute.Add(route[i]);view.ShowArrow(arrowRoute);}
         void StopBlocked()
         { Blocked=true; PlanningPaused=false; CurrentSpeed=0; route.Clear(); next=0; if(view!=null) view.Clear(); }
-        void Update()
+        public void ApplyNetworkState(IList<RoadPoint> points,float actualSpeed,MouseCommandMode mode,bool moving){route=points==null?new List<RoadPoint>():new List<RoadPoint>(points);next=route.Count>1?1:route.Count;networkMoving=moving;CurrentSpeed=actualSpeed;MovementMode=mode;expectedPosition=transform.position;if(view!=null){if(route.Count>1)RefreshArrow();else view.Clear();}}
+        void Update(){if(LocalPvpSession.Active==null)Tick(Time.deltaTime);}
+        public void Tick(float dt)
         {
             if(MovementLocked||PlanningPaused||!IsMoving||speed==null){CurrentSpeed=0;return;}
             // Full segments were checked at Commit. Recheck only after geometry/permissions
@@ -78,7 +91,8 @@ namespace CampaignDemo
                 legStart=new RoadPoint(at.x,at.y);
                 validatedVersion=version;
             }
-            float remainingTime=Time.deltaTime;
+            // Combat contact does not cancel an accepted movement path.
+            float remainingTime=dt;
             while(IsMoving&&remainingTime>0)
             {
                 var p=route[next]; var target=new Vector3((float)p.X,(float)p.Y,0);
@@ -87,7 +101,9 @@ namespace CampaignDemo
                 float value=legSpeed==null?speed():legSpeed(legStart,p);
                 if(float.IsNaN(value)||float.IsInfinity(value)||value<0) { StopBlocked(); return; }
                 var carrier=GetComponent<PersonnelCarrier>();if(carrier!=null)value*=carrier.SpeedMultiplier;
-                var campaignUnit=GetComponent<CampaignUnit>();var actor=GetComponent<BattleUnit>();if(actor!=null&&actor.Campaign!=null){value*=actor.Campaign.MovementMultiplier(actor,start,Vector3.MoveTowards(start,target,value*remainingTime));if(campaignUnit!=null)value=Mathf.Min(value,Mathf.Max(0,campaignUnit.desiredSpeed));}
+                float environmentMultiplier=1;var campaignUnit=GetComponent<CampaignUnit>();var actor=GetComponent<BattleUnit>();if(actor!=null&&actor.Campaign!=null){environmentMultiplier=actor.Campaign.MovementMultiplier(actor,start,Vector3.MoveTowards(start,target,value*remainingTime));value*=environmentMultiplier;if(campaignUnit!=null&&!LocalPrototypeOrders.EnabledFor(this))value=Mathf.Min(value,Mathf.Max(0,campaignUnit.desiredSpeed));}
+                var localOrder=GetComponent<LocalMarchOrder>();if(localOrder!=null)value=localOrder.ApplySpeed(value,legStart,p,MovementMode,environmentMultiplier);
+                if(nudgeSpeed>=0)value=Mathf.Min(value,nudgeSpeed);
                 CurrentSpeed=value; if(value==0) break;
                 float budget=value*remainingTime;
                 var end=distance<=budget?target:Vector3.MoveTowards(start,target,budget);

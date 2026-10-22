@@ -22,7 +22,6 @@ namespace CampaignDemo.Editor
             if(presenter.effectPlayer==null)presenter.effectPlayer=player;
             if(presenter.defaultProfile==null)presenter.defaultProfile=Asset("DefaultAttackEffects",new Color(1,.75f,.25f,.9f));
             if(presenter.artilleryProfile==null)presenter.artilleryProfile=Asset("ArtilleryEffects",new Color(1,.45f,.15f,.9f));
-            if(presenter.supportProfile==null)presenter.supportProfile=Asset("SupportEffects",new Color(1,.35f,.15f,.9f));
             if(presenter.profiles==null||presenter.profiles.Length==0)presenter.profiles=new[]{new CombatEffectPresenter.RoleProfile{role=UnitRole.Tank,profile=Asset("TankAttackEffects",new Color(1,.6f,.2f,.9f))}};
             EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();Debug.Log("COMBAT_EFFECTS_CONFIGURED");
         }

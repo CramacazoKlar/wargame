@@ -16,47 +16,54 @@ MonoBehaviour:
   additionalUnits:
   - role: 1
     prefab: {fileID: 133431993752077519, guid: 588b9a6eaaf439b4b8cf725c739d84d4, type: 3}
-    squadCost: 100
+    squadCost: 12000
     squadSeconds: 30
     costScale: 3.3
     timeScale: 3
     requiresFactory: 0
   - role: 2
     prefab: {fileID: 5404444603685187943, guid: b62e6ae26886f1d4b829da5af0f4964d, type: 3}
-    squadCost: 100
+    squadCost: 40000
     squadSeconds: 30
     costScale: 3.3
     timeScale: 3
     requiresFactory: 0
   - role: 3
     prefab: {fileID: 7575972494477004956, guid: 1c7ab25d922991542807157a400eb98d, type: 3}
-    squadCost: 100
+    squadCost: 15000
     squadSeconds: 30
     costScale: 3.3
     timeScale: 3
     requiresFactory: 0
   - role: 4
     prefab: {fileID: 8863490270163375422, guid: 410e0cf3dc3462d4fbdaa88411fb9ce4, type: 3}
-    squadCost: 100
+    squadCost: 50000
     squadSeconds: 30
     costScale: 3.3
     timeScale: 3
     requiresFactory: 0
   - role: 5
     prefab: {fileID: 2841242019070235750, guid: be43b0bcbdfaeb94ea570ea3fef05f08, type: 3}
-    squadCost: 100
+    squadCost: 20000
     squadSeconds: 30
     costScale: 3.3
     timeScale: 3
     requiresFactory: 0
   - role: 7
     prefab: {fileID: 489246446861296527, guid: b79e03e413b6435418bc4e5f95e7c642, type: 3}
-    squadCost: 100
+    squadCost: 14000
     squadSeconds: 30
     costScale: 3.3
     timeScale: 3
     requiresFactory: 0
-  infantrySquadCost: 100
+  - role: 8
+    prefab: {fileID: 3606314461666492487, guid: 8f17f52d3d3c78841818fb535a26a2f3, type: 3}
+    squadCost: 60000
+    squadSeconds: 30
+    costScale: 3.3
+    timeScale: 3
+    requiresFactory: 0
+  infantrySquadCost: 10000
   infantrySquadSeconds: 30
   infantryCostScale: 3.3
   infantryTimeScale: 3

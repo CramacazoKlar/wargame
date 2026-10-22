@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3db440957d12b264fa66bb33e42190ad, type: 3}
+  m_Name: Ownership
+  m_EditorClassIdentifier: 
+  regions:
+  - name: "\u84DD\u65B9\u51FA\u53D1\u533A"
+    polygon:
+    - {x: -16, y: -10}
+    - {x: 0, y: -10}
+    - {x: 0, y: 10}
+    - {x: -16, y: 10}
+    state: 1
+    ownerId: A
+    color: {r: 0.2, g: 0.65, b: 0.9, a: 1}
+  - name: "\u7EA2\u65B9\u51FA\u53D1\u533A"
+    polygon:
+    - {x: 0, y: -10}
+    - {x: 16, y: -10}
+    - {x: 16, y: 10}
+    - {x: 0, y: 10}
+    state: 1
+    ownerId: B
+    color: {r: 0.2, g: 0.65, b: 0.9, a: 1}

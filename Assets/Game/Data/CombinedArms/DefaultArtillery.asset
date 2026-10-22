@@ -16,7 +16,12 @@ MonoBehaviour:
   blastRadius: 0.65
   cooldownSeconds: 20
   delaySeconds: 2
+  barrageBaseSeconds: 1.5
+  barrageSecondsPerEchelon: 2
+  rocketBarrageBaseSeconds: 2
+  rocketBarrageSecondsPerEchelon: 0.5
+  shellIntervalSeconds: 0.9
+  rocketShellIntervalSeconds: 0.35
   damage: 1.4
   friendlyFire: 1
-  requireVision: 1
-
+  requireVision: 0

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bb5210bd2e574b4290008cfe91aec34, type: 3}
+  m_Name: RadarMovement
+  m_EditorClassIdentifier: 
+  displayName: "\u56FA\u5B9A\u96F7\u8FBE"
+  speed: 0.01
+  useReferenceTravelTime: 0
+  referenceDistanceMeters: 5000
+  referenceTravelMinutes: 0.5
+  roadSpeedRatio: 1
+  prefab: {fileID: 0}
+  freeMarchDefinition: {fileID: 0}
+  icon: {fileID: 0}
+  iconSize: {x: 0.8, y: 0.5}
+  iconColor: {r: 0.15, g: 0.75, b: 0.95, a: 1}

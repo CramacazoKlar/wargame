@@ -25,14 +25,16 @@ namespace CampaignDemo {
   void OnDestroy(){if(world!=null)world.CombatEffectOccurred-=OnCombat;}
   public void Initialize(BattleWorld target){world=target;Snapshot.blueOwner=world.players[0];Snapshot.bounds=MapBounds();var reference=FindObjectOfType<MapReferenceHUD>();if(reference!=null)Snapshot.metersPerWorldUnit=reference.metersPerWorldUnit;world.CombatEffectOccurred+=OnCombat;Sample();}
   Rect MapBounds(){var map=world.setup.freeMarchMap;if(map!=null&&map.definition!=null){var b=map.definition.bounds;var min=map.transform.TransformPoint(new Vector3(b.xMin,b.yMin));var max=map.transform.TransformPoint(new Vector3(b.xMax,b.yMax));return Rect.MinMaxRect(Mathf.Min(min.x,max.x),Mathf.Min(min.y,max.y),Mathf.Max(min.x,max.x),Mathf.Max(min.y,max.y));}return new Rect(-25,-25,50,50);}
+  public void ApplyNetworkClock(float time){if(!Finished)Snapshot.elapsed=time;}
   public void Advance(float dt){if(Finished)return;Snapshot.elapsed+=Mathf.Max(0,dt);Sample();}
   public void Sample(){if(Finished||world==null||!world.Initialized)return;foreach(var unit in world.units)if(unit!=null)SampleUnit(unit);SampleDefenses();Samples++;}
-  public void SampleUnit(BattleUnit unit){if(Finished||unit==null)return;
+  public void SampleUnit(BattleUnit unit){if(Finished||unit==null||(LocalPvpSession.Active!=null&&!LocalPvpSession.Active.IsHost&&!unit.NetworkVisible))return;
    if(!records.TryGetValue(unit.unitId,out var army)){
     army=new ReplayArmy{id=unit.unitId,owner=unit.ownerId,label=unit.DisplayDesignation,role=unit.combatDefinition.role,echelon=unit.combatDefinition.echelon,unit=unit};
     var identity=unit.GetComponent<UnitSymbolIdentity>();var renderer=unit.GetComponent<SpriteRenderer>();army.symbol=identity==null||identity.catalog==null?(renderer==null?null:renderer.sprite):identity.catalog.Unit(army.role,army.echelon,army.owner==Snapshot.blueOwner);
     records.Add(army.id,army);Snapshot.armies.Add(army);
    }
+   army.unit=unit;army.role=unit.combatDefinition.role;army.echelon=unit.combatDefinition.echelon;
    if(army.dead)return;
    var p=unit.Carrier!=null?unit.Carrier.Unit.transform.position:unit.Point!=null&&!unit.OnMap?unit.Point.transform.position:unit.transform.position;p.z=0;if(!army.hasInitialPosition){army.initialPosition=p;army.hasInitialPosition=true;}army.finalPosition=p;QuarterReplay.Capture(army,Snapshot.elapsed,p,unit.combatDefinition.visionRadius,unit.OnMap);
    bool travel=unit.Alive&&(unit.OnMap||unit.Carrier!=null);
@@ -48,6 +50,6 @@ namespace CampaignDemo {
   public void BeginContact(){if(Finished||Snapshot.firstContact>=0)return;Sample();Snapshot.firstContact=Snapshot.elapsed;Sample();}
   public void RecordDeath(BattleUnit unit){if(Finished)return;if(records.TryGetValue(unit.unitId,out var existing)&&existing.dead)return;SampleUnit(unit);if(records.TryGetValue(unit.unitId,out var a)){QuarterReplay.Capture(a,Snapshot.elapsed,a.finalPosition,unit.combatDefinition.visionRadius,unit.OnMap,true);a.dead=true;a.deathTime=Snapshot.elapsed;a.travelling=false;a.observing=false;}}
   void SampleDefenses(){var combined=world.GetComponent<CombinedArmsWorld>();if(combined==null)return;foreach(var fort in combined.fortifications)if(fort!=null&&!defenses.ContainsKey(fort.GetInstanceID())){var record=new ReplayDefense{owner=fort.ownerId,destroyed=fort.Destroyed,fort=fort,points=fort.IsLine?(Vector3[])fort.linePoints.Clone():new[]{fort.transform.position+Vector3.left*fort.radius,fort.transform.position+Vector3.right*fort.radius}};defenses.Add(fort.GetInstanceID(),record);Snapshot.defenses.Add(record);}foreach(var record in Snapshot.defenses)if(record.fort==null||record.fort.Destroyed)record.destroyed=true;}
-  public void Finish(){if(Finished)return;Sample();foreach(var army in Snapshot.armies)if(!army.dead)QuarterReplay.Capture(army,Snapshot.elapsed,army.finalPosition,army.unit.combatDefinition.visionRadius,army.unit.OnMap,true);QuarterReplay.Build(Snapshot);foreach(var army in Snapshot.armies)QuarterReplay.BuildTactical(army,0f);ReplayTacticalCleanup.Build(Snapshot,Mathf.Max(.03f,world.setup.settings.arrowShaftWidth));ReplayTacticalCleanup.Polish(Snapshot,Mathf.Max(.03f,world.setup.settings.arrowShaftWidth));Finished=true;var display=gameObject.AddComponent<BattleReplayPresentation>();display.recorder=this;display.Build();}
+  public void Finish(){if(Finished)return;Sample();Finished=true;}
  }
 }

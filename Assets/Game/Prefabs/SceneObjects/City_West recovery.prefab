@@ -58,8 +58,8 @@ MonoBehaviour:
   transitionSeconds: 2
   capacity: 3
   repairFractionPerSecond: 0.02
-  resourceStock: 4000
-  resourcePerPerson: 1
+  resourceStock: 400000
+  resourcePerPerson: 100
   exitOffset: {x: 0.3, y: 0}
 --- !u!212 &6968113257371196248
 SpriteRenderer:

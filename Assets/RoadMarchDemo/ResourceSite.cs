@@ -1,7 +1,8 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace CampaignDemo {
     public sealed class ResourceSite : MonoBehaviour
     {
+        public float stock=2000000;
         public string siteId;
         void Awake(){if(string.IsNullOrEmpty(siteId))siteId=System.Guid.NewGuid().ToString("N");}
         public string displayName="资源区";

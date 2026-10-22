@@ -13,7 +13,7 @@ namespace CampaignDemo
         {
             if(!Application.isPlaying||!isActiveAndEnabled||presenter==null)return;var profile=presenter.Profile(cue);if(profile==null)return;active.RemoveAll(g=>g==null);
             bool direct=cue.Stage==CombatEffectStage.DirectAttack;bool launch=cue.Stage==CombatEffectStage.ArtilleryLaunch;
-            bool impact=direct||cue.Stage==CombatEffectStage.ArtilleryImpact||cue.Stage==CombatEffectStage.SupportImpact;
+            bool impact=direct||cue.Stage==CombatEffectStage.ArtilleryImpact;
             if((direct||launch)&&cue.HasSource)Spawn(profile.firePrefab,cue.SourcePosition,profile.lifetime,profile.prefabScale);
             if((direct||launch)&&cue.HasSource&&cue.HasTarget&&profile.projectilePrefab!=null){var g=Spawn(profile.projectilePrefab,cue.SourcePosition,Mathf.Max(profile.lifetime,profile.projectileTravelSeconds),profile.prefabScale);if(g!=null)g.GetComponent<CombatEffectInstance>().Configure(Mathf.Max(profile.lifetime,profile.projectileTravelSeconds),cue.SourcePosition,cue.TargetPosition,profile.projectileTravelSeconds);}
             if(impact&&cue.HasTarget){float scale=profile.prefabScale*(profile.scaleImpactByBlastRadius&&cue.Radius>0?cue.Radius:1);Spawn(profile.impactPrefab,cue.TargetPosition,profile.lifetime,scale);}

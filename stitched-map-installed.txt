@@ -1,0 +1,1 @@
+43-source stitched map installed: 6218 x 4616; bounds 36 x 26.72499. No terrain regions or road nodes authored.

@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 1901836379863972408}
   - component: {fileID: 4825840309014384307}
   - component: {fileID: 7942976260383923222}
-  - component: {fileID: 4563938671247522437}
   m_Layer: 0
   m_Name: Collector
   m_TagString: Untagged
@@ -99,27 +98,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   catalog: {fileID: 11400000, guid: a01385b2be9683541bbe95da41ab3891, type: 2}
---- !u!114 &4563938671247522437
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5934693190810618164}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b60323613719ff441b41d38e8b8f64a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  unlimitedStorage: 1
-  collectorId: 
-  ownerId: B
-  site: {fileID: 0}
-  settings:
-    health: 500
-    defense: 10
-    buildCost: 100
-    collectionInterval: 5
-    amountPerInterval: 50
-    storageLimit: 500
-    footprint: {x: 0.3, y: 0.3}

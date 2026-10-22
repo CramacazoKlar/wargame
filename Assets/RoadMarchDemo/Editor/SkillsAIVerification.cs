@@ -71,14 +71,7 @@ public static class SkillsAIVerification
             Check(newborn.ownerId=="B"&&newborn.Alive&&newborn.OnMap&&newborn.Campaign==world.campaign,"new soldier has correct absolute faction and simulation state");
             ai.Refresh();Check(ai.Orders.Any(o=>o.GetComponent<BattleUnit>()==newborn),"new soldier automatically joins red commander");
             Check(!world.GetComponent<BattleCommandService>().Submit(new BattleCommand{kind=BattleCommandKind.BuildInfantry,playerId="A",pointId=world.points.First(point=>point.ownerId=="A").pointId,automatedProduction=true,echelon=ArmyEchelon.Squad}).accepted,"automated recruitment cannot target blue");
-            var redCollector=new GameObject("Income test red").AddComponent<ResourceCollector>();redCollector.ownerId="B";redCollector.Campaign=world.campaign;redCollector.settings.collectionInterval=1;redCollector.settings.amountPerInterval=10;redCollector.Initialize();
-            var blueCollector=new GameObject("Income test blue").AddComponent<ResourceCollector>();blueCollector.ownerId="A";blueCollector.Campaign=world.campaign;blueCollector.settings.collectionInterval=1;blueCollector.settings.amountPerInterval=10;blueCollector.Initialize();
             p.resourceIncomeMultiplier=3;p.productionSpeedMultiplier=3;p.omniscientEnemyIntel=true;p.enableCheats=false;
-            redCollector.Tick(1);Check(redCollector.Stock==10&&AICheatRules.Production(world,"B")==1,"master cheat switch off ignores stored multipliers");
-            p.enableCheats=true;redCollector.Tick(1);blueCollector.Tick(1);
-            Check(redCollector.Stock==40&&blueCollector.Stock==10,"resource cheat affects red income only");
-            world.SetPlayer("B");redCollector.Tick(1);
-            Check(redCollector.Stock==50&&AICheatRules.Production(world,"B")==1,"red manual perspective receives no cheat bonuses");world.SetPlayer("A");
             var blue=world.units.First(u=>u.ownerId=="A");blue.transform.position=new Vector3(2000,2000);world.fogEnabled=true;
             p.enableCheats=false;Check(!world.IsVisible("B",blue),"ordinary AI cannot see hidden distant enemy");
             p.enableCheats=true;Check(world.IsVisible("B",blue)&&world.GetComponent<BattleInformationSource>().GetArmy("B",blue.unitId)!=null,"explicit full-map cheat reaches filtered AI intelligence");
